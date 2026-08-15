@@ -224,6 +224,7 @@ await assert.rejects(
 // Vercel
 // =============================================================================
 
+let vercelPolls = 0;
 const vercelServer = await startServer(async (req, res) => {
   const url = new URL(req.url, "http://x");
   if (req.headers.authorization !== "Bearer vc_test") return json(res, 401, { error: { code: "unauthorized" } });
@@ -246,13 +247,31 @@ const vercelServer = await startServer(async (req, res) => {
     assert.equal(idx.mode & 0o170000, 0o100000, "regular file mode bits present");
     assert.ok(!("data" in idx), "manifest references sha, not inline data");
     assert.ok(payload.files.some((f) => f.file === "assets/app.css"));
+    const isProd = payload.target === "production";
     return json(res, 200, {
-      id: "dep1",
-      url: "sample-site-abc.vercel.app",
-      alias: payload.target === "production" ? ["https://sample-site.vercel.app"] : [],
-      readyState: "READY",
+      id: isProd ? "dep1" : "dep-preview",
+      url: isProd ? "sample-site-abc.vercel.app" : "sample-site-prev.vercel.app",
+      alias: isProd ? ["https://sample-site.vercel.app"] : [],
+      readyState: "QUEUED", // must poll before the URL is usable
       target: payload.target || null,
     });
+  }
+  // poll: production deploy is still INITIALIZING on the first poll (proves
+  // deploy() waits for READY), then READY with the alias assigned.
+  if (url.pathname === "/v13/deployments/dep1" && req.method === "GET") {
+    vercelPolls++;
+    if (vercelPolls === 1) return json(res, 200, { id: "dep1", readyState: "INITIALIZING" });
+    return json(res, 200, {
+      id: "dep1",
+      readyState: "READY",
+      url: "sample-site-abc.vercel.app",
+      alias: ["https://sample-site.vercel.app"],
+      target: "production",
+    });
+  }
+  // preview deployments have no production alias — URL is the unique deploy URL
+  if (url.pathname === "/v13/deployments/dep-preview" && req.method === "GET") {
+    return json(res, 200, { id: "dep-preview", readyState: "READY", url: "sample-site-prev.vercel.app", alias: [], target: null });
   }
   if (url.pathname === "/v9/projects" && req.method === "GET") {
     assert.equal(url.searchParams.get("name"), "sample-site");
@@ -290,6 +309,7 @@ const v1 = await vercel.deploy({
 assert.equal(v1.id, "dep1");
 assert.equal(v1.url, "https://sample-site.vercel.app");
 assert.equal(v1.deployUrl, "https://sample-site-abc.vercel.app");
+assert.ok(vercelPolls >= 2, "deploy() polled until READY (saw INITIALIZING then READY)");
 
 // preview deploy → no target key
 const v2 = await vercel.deploy({
@@ -301,7 +321,7 @@ const v2 = await vercel.deploy({
   config: vercelConfig,
   rc: {},
 });
-assert.equal(v2.url, "https://sample-site-abc.vercel.app");
+assert.equal(v2.url, "https://sample-site-prev.vercel.app");
 
 // rollback + list with production marking
 const v3 = await vercel.rollback({ project: "sample-site", deployId: "dep1", flags: {}, config: vercelConfig, rc: {} });
