@@ -1,0 +1,9 @@
+{
+  "name": "sample-site",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Demo site for deploy-cli: build script copies src/ into dist/ and injects a build time.",
+  "scripts": {
+    "build": "node build.mjs"
+  }
+}

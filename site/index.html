@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>deploy-cli — one command to ship</title>
+  <meta name="description" content="One-command deploys for static sites: local control plane, Netlify, Vercel, Cloudflare Pages, and S3 from a single CLI with an interactive UI.">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="nav">
+    <div class="nav-inner">
+      <a class="brand" href="#top"><span class="brand-mark">▲</span> deploy-cli</a>
+      <nav>
+        <a href="#features">Features</a>
+        <a href="#providers">Providers</a>
+        <a href="#quickstart">Quickstart</a>
+        <a href="#docs">Docs</a>
+        <a class="ghost" href="https://github.com/yourname/deploy-cli" target="_blank" rel="noopener">GitHub ↗</a>
+      </nav>
+    </div>
+  </header>
+
+  <main id="top">
+    <section class="hero">
+      <div class="hero-inner">
+        <p class="eyebrow">▲ deploy-cli v0.3</p>
+        <h1>One command<br><span class="gradient">to ship.</span></h1>
+        <p class="lede">
+          Build, upload, and get a live URL — for your own control plane,
+          Netlify, Vercel, Cloudflare Pages, or S3. With previews, instant
+          rollback, and an interactive terminal UI.
+        </p>
+        <div class="install">
+          <code id="install-cmd">npm install -g deploy-cli</code>
+          <button id="copy-btn" aria-label="Copy install command">Copy</button>
+        </div>
+        <div class="terminal" aria-hidden="true">
+          <div class="terminal-bar"><span></span><span></span><span></span><em>deploy</em></div>
+          <pre id="terminal-body"></pre>
+        </div>
+      </div>
+    </section>
+
+    <section class="features" id="features">
+      <h2>Everything a deploy should be</h2>
+      <div class="grid">
+        <div class="card">
+          <h3>One command</h3>
+          <p>Project detection, build, upload, URL. No dashboards, no drag-and-drop.</p>
+        </div>
+        <div class="card">
+          <h3>Interactive UI</h3>
+          <p>A real terminal menu, arrow-key pickers, and masked token entry — zero dependencies.</p>
+        </div>
+        <div class="card">
+          <h3>Instant rollback</h3>
+          <p>Immutable deploys behind a mutable alias. Roll back in seconds, not re-deploys.</p>
+        </div>
+        <div class="card">
+          <h3>Preview deploys</h3>
+          <p><code>deploy preview</code> ships a branch to its own URL — production untouched.</p>
+        </div>
+        <div class="card">
+          <h3>Five targets</h3>
+          <p>Local control plane, Netlify, Vercel, Cloudflare Pages, and S3 from the same commands.</p>
+        </div>
+        <div class="card">
+          <h3>CI-safe</h3>
+          <p>No prompts in scripts, pure JSON output, retries with backoff, idempotent uploads.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="providers" id="providers">
+      <h2>Ship anywhere</h2>
+      <div class="provider-row">
+        <div class="provider"><span class="dot local"></span><strong>local</strong><small>bundled control plane</small></div>
+        <div class="provider"><span class="dot netlify"></span><strong>netlify</strong><small>digest uploads · restore</small></div>
+        <div class="provider"><span class="dot vercel"></span><strong>vercel</strong><small>sha256 uploads · rollback</small></div>
+        <div class="provider"><span class="dot cloudflare"></span><strong>cloudflare</strong><small>Pages direct upload</small></div>
+        <div class="provider"><span class="dot s3"></span><strong>s3</strong><small>SigV4 signed puts</small></div>
+      </div>
+    </section>
+
+    <section class="quickstart" id="quickstart">
+      <h2>First deploy in two minutes</h2>
+      <ol class="steps">
+        <li><code>npm install -g deploy-cli</code></li>
+        <li><code>deploy server</code> — start the local control plane</li>
+        <li><code>deploy</code> — pick <em>Deploy now</em> from the menu</li>
+        <li>Share the URL it prints — <code>…/latest/</code> for production, <code>…/&lt;deployId&gt;/</code> forever</li>
+      </ol>
+      <p class="muted">React? Vite and Create React App are auto-detected — see the <a href="#docs">guides</a>.</p>
+    </section>
+
+    <section class="docs" id="docs">
+      <h2>Guides</h2>
+      <div class="doc-links">
+        <a href="https://github.com/yourname/deploy-cli/blob/main/docs/install.md">Install</a>
+        <a href="https://github.com/yourname/deploy-cli/blob/main/docs/quickstart.md">Quickstart</a>
+        <a href="https://github.com/yourname/deploy-cli/blob/main/docs/commands.md">Commands</a>
+        <a href="https://github.com/yourname/deploy-cli/blob/main/docs/interactive.md">Interactive UI</a>
+        <a href="https://github.com/yourname/deploy-cli/blob/main/docs/react.md">React &amp; Vite</a>
+        <a href="https://github.com/yourname/deploy-cli/blob/main/docs/ci.md">CI/CD</a>
+        <a href="https://github.com/yourname/deploy-cli/blob/main/docs/smoke-test.md">Smoke test</a>
+        <a href="https://github.com/yourname/deploy-cli/blob/main/docs/troubleshooting.md">Troubleshooting</a>
+        <a href="https://github.com/yourname/deploy-cli/blob/main/ARCHITECTURE.md">Architecture</a>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <p>▲ deploy-cli — MIT licensed · <a href="https://github.com/yourname/deploy-cli" target="_blank" rel="noopener">source on GitHub</a></p>
+    <p class="tiny">Zero dependencies · Node ≥ 18 · built by the deploy-cli contributors</p>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>

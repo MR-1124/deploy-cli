@@ -1,0 +1,12 @@
+{
+  "project": "sample-site",
+  "netlify": {
+    "site": "sample-site-demo"
+  },
+  "vercel": {
+    "project": "sample-site"
+  },
+  "cloudflare": {
+    "project": "sample-site"
+  }
+}

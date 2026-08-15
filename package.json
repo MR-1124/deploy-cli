@@ -1,0 +1,47 @@
+{
+  "name": "deploy-cli",
+  "version": "0.3.0",
+  "description": "One-command deploys for static sites: local control plane, Netlify, Vercel, Cloudflare Pages, and S3 from a single CLI with an interactive UI, previews, rollback, and a health-check doctor.",
+  "type": "module",
+  "bin": {
+    "deploy": "./cli.js"
+  },
+  "main": "./lib/index.js",
+  "exports": {
+    ".": "./lib/index.js",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "cli.js",
+    "lib/",
+    "docs/",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "test": "node test/run.js && node test/providers.js && node test/cli.js && node test/ui.js",
+    "smoke": "node scripts/smoke-real.mjs",
+    "pack": "npm pack --dry-run"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "keywords": [
+    "cli",
+    "deploy",
+    "static-site",
+    "netlify",
+    "vercel",
+    "cloudflare",
+    "s3",
+    "hosting",
+    "preview",
+    "rollback"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/MR-1124/deploy-cli.git"
+  },
+  "author": "deploy-cli contributors"
+}

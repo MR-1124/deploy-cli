@@ -1,0 +1,50 @@
+# Preview deploys on every pull request.
+#
+# This workflow uses the bundled local control plane (no external tokens): it
+# starts `deploy server` on the runner, deploys the PR branch to a
+# `preview-<branch>` alias, and comments the URL on the PR.
+#
+# To deploy previews to Netlify/Vercel instead, add secrets (NETLIFY_AUTH_TOKEN
+# or VERCEL_TOKEN) and replace the deploy step with:
+#   deploy login --provider netlify --token ${{ secrets.NETLIFY_AUTH_TOKEN }}
+#   deploy preview --provider netlify --no-build
+
+name: Preview deploy
+
+on:
+  pull_request:
+
+jobs:
+  preview:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Start local control plane
+        run: node cli.js server --port 8787 --storage .deploy-storage --token dev-token &
+
+      - name: Login
+        run: DEPLOY_CONFIG_DIR=$RUNNER_TEMP/dc node cli.js login --server http://localhost:8787
+
+      - name: Preview deploy
+        id: deploy
+        run: |
+          cd examples/sample-site
+          DEPLOY_CONFIG_DIR=$RUNNER_TEMP/dc node ../../cli.js preview --no-build --json > preview.json
+          echo "url=$(node -e "console.log(require('./preview.json').url)")" >> "$GITHUB_OUTPUT"
+
+      - name: Comment URL on the PR
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const url = '${{ steps.deploy.outputs.url }}';
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: `🚀 **Preview deploy ready:** ${url}\n\n_Deployed by deploy-cli on PR #${context.issue.number}._`,
+            });
