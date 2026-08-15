@@ -71,6 +71,85 @@ fine). The smoke automatically disables it on its project
 explicitly if it ever still trips. If you pin `SMOKE_VERCEL_PROJECT`, the same
 disable call is applied to your pinned project.
 
+## Setting up credentials (mistake-proof, least privilege)
+
+### Cloudflare
+
+1. Sign in at dash.cloudflare.com → **My Profile** (top-right avatar) → **API Tokens** → **Create Token** → **Create Custom Token**.
+2. Set the permissions exactly:
+   - **Permissions**: `Cloudflare Pages` → `Edit`
+   - **Account Resources**: Include → **All accounts** (required: the smoke auto-creates `smoke-<timestamp>` projects, so a single-project scope won't work)
+   - **Zone Resources**: leave at default / *All zones* (Pages is account-level; no zone permission is needed)
+   - **Continue** → **Create Token**.
+3. Copy the token — it is shown **once**.
+4. Get your **Account ID**: the right sidebar of any dashboard page (under the account switcher), or run the verification below.
+5. Verify the token before saving it anywhere:
+   ```bash
+   curl -s "https://api.cloudflare.com/client/v4/accounts" -H "Authorization: Bearer <TOKEN>"
+   ```
+   Expect `"success":true` and your account `id` in the result.
+
+**Only `Pages:Edit` is needed** — no zone, DNS, or Workers permissions.
+
+### AWS (S3)
+
+1. **Create the bucket** (S3 console → Create bucket): any globally unique name, **note the region** — the smoke defaults to `us-east-1` and 403s with `PermanentRedirect` on a mismatch.
+2. **Make it public-readable** — the smoke fetches the uploaded objects anonymously:
+   - In the bucket → **Permissions** → **Block public access**: uncheck *Block all public access* (bucket settings) → Save.
+   - **Bucket policy** → Edit → paste:
+   ```json
+   {
+     "Version": "2012-10-17",
+     "Statement": [
+       {
+         "Effect": "Allow",
+         "Principal": "*",
+         "Action": ["s3:GetObject"],
+         "Resource": "arn:aws:s3:::YOUR-BUCKET-NAME/*"
+       }
+     ]
+   }
+   ```
+   Keep this bucket test-only — it is world-readable by design.
+3. **Create the IAM user** (IAM → Users → Create user): name e.g. `deploy-cli-smoke`, **Attach policies directly** → **Create inline policy** → paste (replace the bucket name):
+   ```json
+   {
+     "Version": "2012-10-17",
+     "Statement": [
+       {
+         "Effect": "Allow",
+         "Action": ["s3:PutObject", "s3:GetObject"],
+         "Resource": "arn:aws:s3:::YOUR-BUCKET-NAME/*"
+       },
+       {
+         "Effect": "Allow",
+         "Action": ["s3:ListBucket"],
+         "Resource": "arn:aws:s3:::YOUR-BUCKET-NAME"
+       }
+     ]
+   }
+   ```
+   These are exactly the calls the CLI makes: `PutObject` (upload), `GetObject` (content checks), `ListBucket` (`deploy list` + `deploy doctor`).
+4. **Create the access key**: user → **Security credentials** → **Create access key** → *Application running outside AWS* → copy **Access key ID** and **Secret access key** — the secret is shown **once**.
+
+### Where the values go
+
+| Env var | From | Required for |
+|---|---|---|
+| `CLOUDFLARE_API_TOKEN` | Cloudflare step 3 | Cloudflare leg |
+| `CLOUDFLARE_ACCOUNT_ID` | Cloudflare step 4 | Cloudflare leg |
+| `AWS_ACCESS_KEY_ID` | AWS step 4 | S3 leg |
+| `AWS_SECRET_ACCESS_KEY` | AWS step 4 | S3 leg |
+| `SMOKE_S3_BUCKET` | AWS step 1 (bucket name) | S3 leg |
+| `AWS_REGION` | AWS step 1 (only if not `us-east-1`) | S3 leg |
+
+Add them as **repo secrets** (GitHub → Settings → Secrets and variables → Actions) so the release workflow's smoke step exercises those legs, and/or run once per machine so local `npm run smoke` picks them up:
+
+```bash
+node cli.js login --provider cloudflare --token <TOKEN> --account <ACCOUNT_ID>
+node cli.js login --provider s3 --access-key <AK> --secret-key <SK> --bucket <NAME> [--region <R>]
+```
+
 ## Notes
 
 - **Netlify free tier:** 3 deploys/min, 100/day. Don't rerun in a tight loop;
