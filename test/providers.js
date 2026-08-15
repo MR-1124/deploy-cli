@@ -228,9 +228,10 @@ const vercelServer = await startServer(async (req, res) => {
   if (req.headers.authorization !== "Bearer vc_test") return json(res, 401, { error: { code: "unauthorized" } });
   const body = await readBody(req);
 
-  if (url.pathname === "/v13/files" && req.method === "POST") {
-    const digest = req.headers["x-vercel-digest"];
-    assert.equal(digest, sha256(body));
+  // current documented contract: POST /v2/files with a SHA1 x-vercel-digest
+  if (url.pathname === "/v2/files" && req.method === "POST") {
+    assert.equal(req.headers["x-vercel-digest"], sha1(body));
+    assert.equal(req.headers["content-length"], String(body.length), "Content-Length sent");
     // simulate an already-uploaded file for one of them (409 is fine)
     return json(res, body.toString("utf8").includes("rebeccapurple") ? 409 : 200, {});
   }
@@ -238,7 +239,7 @@ const vercelServer = await startServer(async (req, res) => {
     const payload = JSON.parse(body.toString("utf8"));
     assert.equal(payload.name, "sample-site");
     const idx = payload.files.find((f) => f.file === "index.html");
-    assert.equal(idx.sha, sha256(INDEX));
+    assert.equal(idx.sha, sha1(INDEX));
     assert.equal(idx.size, INDEX.length);
     assert.ok(!("data" in idx), "manifest references sha, not inline data");
     assert.ok(payload.files.some((f) => f.file === "assets/app.css"));

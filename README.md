@@ -11,7 +11,7 @@ rollback, and preview deploys. It targets five hosts through one interface:
 |-------------|------------------------------------------------------------|-----------------------------------|
 | `local`     | tar → bundled control plane (`:8787`)                      | alias re-point (instant)          |
 | `netlify`   | digest uploads (production) / zip (previews)               | restore previous deploy           |
-| `vercel`    | sha256 file uploads + files manifest                       | instant rollback                  |
+| `vercel`    | SHA1 file uploads (`/v2/files`) + files manifest           | instant rollback                  |
 | `cloudflare`| Pages direct upload (requires `--account`)                 | dashboard (no API)                |
 | `s3`        | SigV4-signed PutObject (requires `--bucket`)               | re-upload (no built-in)           |
 
@@ -68,8 +68,9 @@ Upload strategy notes:
   missing files are uploaded — avoids the 25k-file zip cap and 30 s request
   timeout). Branch/preview deploys use the zip method (the documented way).
   Override with `--method zip|digest`.
-- **Vercel** uploads every file once via `POST /v13/files` keyed by sha256, then
-  creates a deployment referencing the shas (no giant JSON manifest).
+- **Vercel** uploads every file once via `POST /v2/files` keyed by SHA1 (the
+  current documented contract), then creates a deployment referencing the shas
+  (no giant JSON manifest).
 - Both hosts are polled until the deploy is `ready`/`success` by default
   (`--no-wait` to skip; `--timeout <seconds>` to bound polling).
 - All requests retry network failures and 5xx/429 with exponential backoff;

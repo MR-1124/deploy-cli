@@ -29,7 +29,7 @@ deploy up --provider vercel
 
 ## How uploads work
 
-Every file is uploaded once via `POST /v13/files` keyed by **sha256**
+Every file is uploaded once via `POST /v2/files` keyed by **SHA1**
 (`x-vercel-digest` header; a 409 means "already uploaded" and is treated as
 success). The deployment then references the shas — no giant base64 request
 body, and unchanged files between deploys are naturally deduped.

@@ -45,7 +45,7 @@ A provider without credentials is skipped (exit stays 0). A provider that
 | Provider | Upload path | Content check | Rollback check |
 |---|---|---|---|
 | Netlify | digest upload (sha1 per file) | fetches the returned URL until it serves `smoke-ok` | `POST .../restore` accepted |
-| Vercel | sha256 file uploads + manifest | same, against the production alias | undocumented rollback endpoint (the one Vercel's CLI uses) |
+| Vercel | SHA1 file uploads (`/v2/files`) + manifest | same, against the production alias | undocumented rollback endpoint (the one Vercel's CLI uses) |
 | Cloudflare | Pages direct upload | same, against the `pages.dev` URL | n/a — no rollback API, reported as such |
 | S3 | SigV4-signed PutObject | fetches the object via the path-style URL | n/a — plain S3 has no rollback |
 

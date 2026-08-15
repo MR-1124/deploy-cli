@@ -326,7 +326,7 @@ deploy server             # dev: local control plane (what the prototype bundles
 local|netlify|vercel|cloudflare|s3`, so the same build detection and command
 surface ship the same folder to the bundled control plane, the Netlify API
 (digest uploads for production, zip for branch deploys), the Vercel API
-(sha256 file uploads + manifest), Cloudflare Pages (direct upload), or S3
+(SHA1 file uploads + manifest), Cloudflare Pages (direct upload), or S3
 (SigV4-signed PutObject). Each provider also handles its own polling until the
 host reports ready, with retries/backoff shared via `lib/http.js`. This is how
 the CLI can both dogfood its own control plane and target real hosts today;
@@ -370,7 +370,7 @@ Implementation notes:
 | Auth (OAuth + keychain)       | `deploy login` stores tokens in `~/.deploy-cli/config.json` (env `DEPLOY_CONFIG_DIR` overrides) |
 | Blob storage                  | `storage/` directory, one folder per deploy         |
 | Streaming tar upload          | real POSIX ustar tar, POSTed as a single body       |
-| Real hosts                    | provider layer: Netlify digest/zip, Vercel sha-upload, Cloudflare Pages, S3 SigV4 |
+| Real hosts                    | provider layer: Netlify digest/zip, Vercel SHA1 upload, Cloudflare Pages, S3 SigV4 |
 | Per-deploy URLs               | `http://localhost:8787/<project>/<id>/`             |
 | Aliases                       | `latest`, `preview-<branch>` pointers in `registry.json` |
 | Rollback                      | `deploy rollback <id>` re-points `latest` (local); restore/promote on hosts |
