@@ -1,0 +1,68 @@
+name: release
+
+# Publish to npm on version tags: git tag v0.3.0 && git push origin v0.3.0
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: read
+
+jobs:
+  test-and-publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          registry-url: https://registry.npmjs.org/
+
+      # Guard: never publish a tag whose version doesn't match package.json.
+      - name: Tag matches package.json version
+        run: |
+          TAG="${GITHUB_REF#refs/tags/}"
+          V="v$(node -p "require('./package.json').version")"
+          if [ "$TAG" != "$V" ]; then
+            echo "::error::tag ${TAG} does not match package.json version ${V} — refusing to publish"
+            exit 1
+          fi
+
+      - name: Run the full test suite
+        run: npm test
+
+      # Real-account smoke test. Providers without credentials are skipped, so
+      # this passes cleanly with no secrets configured — and becomes a hard
+      # gate once the secrets below are added to the repo.
+      - name: Real-account smoke test
+        env:
+          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+          SMOKE_SITE: ${{ secrets.SMOKE_SITE }}
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          SMOKE_VERCEL_PROJECT: ${{ secrets.SMOKE_VERCEL_PROJECT }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          SMOKE_S3_BUCKET: ${{ secrets.SMOKE_S3_BUCKET }}
+        run: npm run smoke
+
+      - name: Publish to npm
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: npm publish
+
+      # Verify what actually landed on the registry, from a clean install.
+      - name: Verify the published package
+        run: |
+          V="$(node -p "require('./package.json').version")"
+          [ "$(npm view deploy-cli version)" = "$V" ]
+          DIR="$(mktemp -d)"; cd "$DIR"
+          npm init -y >/dev/null
+          npm install "deploy-cli@$V" >/dev/null
+          [ "$(./node_modules/.bin/deploy --version)" = "$V" ]
+          ./node_modules/.bin/deploy doctor --json >/dev/null
+          node -e "import('deploy-cli').then(m => { if (!('runDoctor' in m)) process.exit(1) })"
+          echo "published deploy-cli@$V verified from a clean install"
