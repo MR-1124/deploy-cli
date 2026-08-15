@@ -58,11 +58,11 @@ jobs:
       - name: Verify the published package
         run: |
           V="$(node -p "require('./package.json').version")"
-          [ "$(npm view deploy-cli version)" = "$V" ]
+          [ "$(npm view @mr-1124/deploy-cli version)" = "$V" ]
           DIR="$(mktemp -d)"; cd "$DIR"
           npm init -y >/dev/null
-          npm install "deploy-cli@$V" >/dev/null
+          npm install "@mr-1124/deploy-cli@$V" >/dev/null
           [ "$(./node_modules/.bin/deploy --version)" = "$V" ]
           ./node_modules/.bin/deploy doctor --json >/dev/null
-          node -e "import('deploy-cli').then(m => { if (!('runDoctor' in m)) process.exit(1) })"
-          echo "published deploy-cli@$V verified from a clean install"
+          node -e "import('@mr-1124/deploy-cli').then(m => { if (!('runDoctor' in m)) process.exit(1) })"
+          echo "published @mr-1124/deploy-cli@$V verified from a clean install"

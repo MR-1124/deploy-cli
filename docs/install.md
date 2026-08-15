@@ -8,7 +8,7 @@
 ## From npm (recommended)
 
 ```bash
-npm install -g deploy-cli
+npm install -g @mr-1124/deploy-cli
 ```
 
 Then verify:
@@ -36,7 +36,7 @@ node cli.js up
 ## Update
 
 ```bash
-npm update -g deploy-cli
+npm update -g @mr-1124/deploy-cli
 ```
 
 ## First run

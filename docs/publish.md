@@ -16,8 +16,8 @@ npm test
 
 ```bash
 npm pack
-# deploy-cli-0.3.0.tgz
-tar -tzf deploy-cli-0.3.0.tgz
+# mr-1124-deploy-cli-0.3.0.tgz (scoped packages omit the @)
+tar -tzf mr-1124-deploy-cli-0.3.0.tgz
 ```
 
 The package contains only `cli.js`, `lib/`, `docs/`, `README.md`, and
@@ -26,7 +26,7 @@ The package contains only `cli.js`, `lib/`, `docs/`, `README.md`, and
 4. Install the tarball into a clean prefix and smoke-test the binary:
 
 ```bash
-npm install -g ./deploy-cli-0.3.0.tgz --prefix "$HOME/.deploy-test"
+npm install -g ./mr-1124-deploy-cli-0.3.0.tgz --prefix "$HOME/.deploy-test"
 "$HOME/.deploy-test/bin/deploy" --version
 "$HOME/.deploy-test/bin/deploy" --help
 ```
@@ -43,15 +43,15 @@ npm publish --dry-run
 npm publish
 ```
 
-- Requires npm credentials (`npm login`) and ownership of the `deploy-cli`
-  name. If the name is taken on the registry, publish under your own scope,
-  e.g. `@yourname/deploy-cli` (update `name` in package.json and the bin key
-  stays `deploy`).
-- First publish: `npm publish --access public` if the package is scoped.
+- Requires npm credentials (`npm login`) and ownership of the scope. This
+  package publishes as `@mr-1124/deploy-cli` because the unscoped
+  `deploy-cli` name is already taken on the registry; the bin key stays
+  `deploy`.
+- First publish of a scoped package: `npm publish --access public`.
 - After publishing, install from the registry and verify:
 
 ```bash
-npm install -g deploy-cli
+npm install -g @mr-1124/deploy-cli
 deploy --version
 deploy --help
 ```
@@ -63,7 +63,8 @@ deploy --help
 
 ## Housekeeping before release
 
-- Update the `repository` URL in package.json to the real repo.
+- Update the `repository` URL in package.json to the real repo
+  (already done: `git+https://github.com/MR-1124/deploy-cli.git`).
 - Remove any placeholder links in `site/` (the website footer points at the
   repo).
 - Update the version shown in the website and README.
