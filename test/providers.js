@@ -92,7 +92,8 @@ const netlifyServer = await startServer(async (req, res) => {
     const digests = JSON.parse(body.toString("utf8")).files;
     assert.equal(digests["/index.html"], sha1(INDEX));
     assert.equal(digests["/assets/app.css"], sha1(CSS));
-    return json(res, 200, { id: "dig1", required: ["/index.html", "/assets/app.css"], required_functions: [] });
+    // the API returns the files to upload keyed by SHA1, not by path
+    return json(res, 200, { id: "dig1", required: [sha1(INDEX), sha1(CSS)], required_functions: [] });
   }
   // preview zip deploy (branch query)
   if (url.pathname === "/api/v1/sites/mock.netlify.app/deploys" && req.method === "POST" && ct === "application/zip") {
@@ -108,7 +109,7 @@ const netlifyServer = await startServer(async (req, res) => {
     return json(res, 404, { message: "site not found" });
   }
   if (url.pathname === "/api/v1/sites/site-new/deploys" && req.method === "POST") {
-    return json(res, 200, { id: "dig-new", required: [], required_functions: [] });
+    return json(res, 200, { id: "dig-new", required: [sha1(INDEX), sha1(CSS)], required_functions: [] });
   }
   // file uploads for digest deploys
   const putMatch = url.pathname.match(/^\/api\/v1\/deploys\/([^/]+)\/files\/(.+)$/);
@@ -228,9 +229,10 @@ const vercelServer = await startServer(async (req, res) => {
   if (req.headers.authorization !== "Bearer vc_test") return json(res, 401, { error: { code: "unauthorized" } });
   const body = await readBody(req);
 
-  // current documented contract: POST /v2/files with a SHA1 x-vercel-digest
+  // current documented contract: POST /v2/files with a SHA1 x-now-digest
   if (url.pathname === "/v2/files" && req.method === "POST") {
-    assert.equal(req.headers["x-vercel-digest"], sha1(body));
+    assert.equal(req.headers["x-now-digest"], sha1(body));
+    assert.equal(req.headers["x-now-size"], String(body.length), "x-now-size sent");
     assert.equal(req.headers["content-length"], String(body.length), "Content-Length sent");
     // simulate an already-uploaded file for one of them (409 is fine)
     return json(res, body.toString("utf8").includes("rebeccapurple") ? 409 : 200, {});
@@ -241,6 +243,7 @@ const vercelServer = await startServer(async (req, res) => {
     const idx = payload.files.find((f) => f.file === "index.html");
     assert.equal(idx.sha, sha1(INDEX));
     assert.equal(idx.size, INDEX.length);
+    assert.equal(idx.mode & 0o170000, 0o100000, "regular file mode bits present");
     assert.ok(!("data" in idx), "manifest references sha, not inline data");
     assert.ok(payload.files.some((f) => f.file === "assets/app.css"));
     return json(res, 200, {
