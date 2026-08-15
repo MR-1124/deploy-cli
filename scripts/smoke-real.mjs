@@ -1,11 +1,16 @@
 // Real-account smoke test. The mock-API tests verify what we SEND; this verifies
 // what the hosts actually RETURN — the only gap the mocks can't close.
 //
-// Requires real credentials (never commit them):
+// Requires real credentials (never commit them). Env vars win; otherwise the
+// smoke falls back to `deploy login` credentials in ~/.deploy-cli/config.json,
+// so logging in once makes every later `npm run smoke` work in any shell:
 //   export NETLIFY_AUTH_TOKEN=nfp_xxx            # app.netlify.com → user settings
 //   export VERCEL_TOKEN=xxx                      # vercel.com/account/tokens
 //   export SMOKE_SITE=some-unique-name           # netlify site name (auto-created)
 //   export SMOKE_VERCEL_PROJECT=sample-site      # pin a vercel project (default: fresh timestamped project)
+//   # or once, per machine:
+//   deploy login --provider netlify --token <PAT>
+//   deploy login --provider vercel --token <token> [--team <teamId>]
 //
 //   node scripts/smoke-real.mjs [netlify] [vercel] [s3] [cloudflare]
 //
@@ -17,28 +22,38 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { PROVIDERS } from "../lib/providers/index.js";
+import { loadConfig } from "../lib/config.js";
 
 const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "smoke-"));
 fs.writeFileSync(path.join(tmp, "index.html"), "<h1>smoke-ok</h1>");
 fs.writeFileSync(path.join(tmp, "asset.txt"), "asset-content");
 
+const saved = loadConfig().providers || {};
+const providers = {
+  netlify: {
+    token: process.env.NETLIFY_AUTH_TOKEN || saved.netlify?.token || null,
+    site: process.env.SMOKE_SITE || saved.netlify?.site || "smoke-" + Date.now(),
+  },
+  vercel: {
+    token: process.env.VERCEL_TOKEN || saved.vercel?.token || null,
+    teamId: process.env.VERCEL_TEAM_ID || saved.vercel?.teamId || null,
+  },
+  cloudflare: {
+    token: process.env.CLOUDFLARE_API_TOKEN || saved.cloudflare?.token || null,
+    accountId: process.env.CLOUDFLARE_ACCOUNT_ID || saved.cloudflare?.accountId || null,
+  },
+  s3: {
+    accessKeyId: process.env.AWS_ACCESS_KEY_ID || saved.s3?.accessKeyId || null,
+    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || saved.s3?.secretAccessKey || null,
+    bucket: process.env.SMOKE_S3_BUCKET || saved.s3?.bucket || null,
+    region: process.env.AWS_REGION || saved.s3?.region || "us-east-1",
+  },
+};
+
 const config = {
   server: "http://localhost:8787",
   token: "dev-token",
-  providers: {
-    netlify: { token: process.env.NETLIFY_AUTH_TOKEN || null, site: process.env.SMOKE_SITE || "smoke-" + Date.now() },
-    vercel: { token: process.env.VERCEL_TOKEN || null },
-    cloudflare: {
-      token: process.env.CLOUDFLARE_API_TOKEN || null,
-      accountId: process.env.CLOUDFLARE_ACCOUNT_ID || null,
-    },
-    s3: {
-      accessKeyId: process.env.AWS_ACCESS_KEY_ID || null,
-      secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || null,
-      bucket: process.env.SMOKE_S3_BUCKET || null,
-      region: process.env.AWS_REGION || "us-east-1",
-    },
-  },
+  providers,
 };
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -110,7 +125,7 @@ async function smokeNetlify() {
  */
 async function ensureUnprotectedVercelProject(token, project) {
   const base = new URL("https://api.vercel.com/v9/projects");
-  if (process.env.VERCEL_TEAM_ID) base.searchParams.set("teamId", process.env.VERCEL_TEAM_ID);
+  if (providers.vercel.teamId) base.searchParams.set("teamId", providers.vercel.teamId);
 
   const created = await fetch(base, {
     method: "POST",
@@ -213,15 +228,28 @@ const skip = (name) => console.log(`- ${name}: skipped (no credentials)`);
 
 const targets = process.argv.slice(2).length ? process.argv.slice(2) : ["netlify", "vercel", "cloudflare", "s3"];
 
-// Missing-credential checklist so a run tells you exactly what to set.
-const REQUIREMENTS = {
-  netlify: ["NETLIFY_AUTH_TOKEN"],
-  vercel: ["VERCEL_TOKEN"],
-  cloudflare: ["CLOUDFLARE_API_TOKEN", "CLOUDFLARE_ACCOUNT_ID"],
-  s3: ["AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", "SMOKE_S3_BUCKET"],
+// Missing-credential checklist so a run tells you exactly what to set
+// (env var or the equivalent `deploy login` one-liner).
+const missingFor = (name) => {
+  switch (name) {
+    case "netlify":
+      return providers.netlify.token ? [] : ["NETLIFY_AUTH_TOKEN (or deploy login --provider netlify)"];
+    case "vercel":
+      return providers.vercel.token ? [] : ["VERCEL_TOKEN (or deploy login --provider vercel)"];
+    case "cloudflare":
+      return providers.cloudflare.token && providers.cloudflare.accountId
+        ? []
+        : ["CLOUDFLARE_API_TOKEN + CLOUDFLARE_ACCOUNT_ID (or deploy login --provider cloudflare)"];
+    case "s3":
+      return providers.s3.accessKeyId && providers.s3.secretAccessKey && providers.s3.bucket
+        ? []
+        : ["AWS_ACCESS_KEY_ID + AWS_SECRET_ACCESS_KEY + SMOKE_S3_BUCKET (or deploy login --provider s3)"];
+    default:
+      return [];
+  }
 };
 for (const name of targets) {
-  const missing = REQUIREMENTS[name]?.filter((v) => !process.env[v]) || [];
+  const missing = missingFor(name);
   if (missing.length) console.log(`  ${name}: set ${missing.join(", ")}`);
 }
 for (const t of targets) {

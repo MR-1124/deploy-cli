@@ -5,8 +5,10 @@ The mock-API test suites verify **what the CLI sends**. `npm run smoke` verifies
 tiny two-file site to each host you select, fetches the returned URL, asserts the
 content actually serves, and (where supported) rolls back.
 
-> Credentials are read from environment variables only. The script never writes
-> to `~/.deploy-cli/config.json` — nothing gets persisted.
+> Credentials come from environment variables first, then fall back to the
+> `deploy login` config (`~/.deploy-cli/config.json`) — so logging in once per
+> machine makes every later `npm run smoke` work in any shell. The script never
+> writes to the config — nothing gets persisted.
 
 ## Requirements
 
@@ -27,7 +29,11 @@ defaults are fresh timestamped names (Netlify sites and Vercel projects
 auto-create on first use) — a fresh Vercel project per run keeps the leg
 hermetic, so a shared project's accumulated alias history or Deployment
 Protection settings can't interfere. A bare `npm run smoke` prints which env
-vars are missing for each provider.
+vars (or `deploy login` commands) are missing for each provider.
+
+Prefer `deploy login --provider netlify --token <PAT>` (and the equivalent for
+vercel/cloudflare/s3) once per machine — the smoke picks those up
+automatically, so you never paste tokens into a shell again.
 
 ## Running
 
