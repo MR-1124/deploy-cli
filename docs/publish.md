@@ -16,8 +16,8 @@ npm test
 
 ```bash
 npm pack
-# mr-1124-deploy-cli-0.3.0.tgz (scoped packages omit the @)
-tar -tzf mr-1124-deploy-cli-0.3.0.tgz
+# mayan1124-deploy-cli-0.3.0.tgz (scoped packages omit the @)
+tar -tzf mayan1124-deploy-cli-0.3.0.tgz
 ```
 
 The package contains only `cli.js`, `lib/`, `docs/`, `README.md`, and
@@ -26,7 +26,7 @@ The package contains only `cli.js`, `lib/`, `docs/`, `README.md`, and
 4. Install the tarball into a clean prefix and smoke-test the binary:
 
 ```bash
-npm install -g ./mr-1124-deploy-cli-0.3.0.tgz --prefix "$HOME/.deploy-test"
+npm install -g ./mayan1124-deploy-cli-0.3.0.tgz --prefix "$HOME/.deploy-test"
 "$HOME/.deploy-test/bin/deploy" --version
 "$HOME/.deploy-test/bin/deploy" --help
 ```
@@ -44,14 +44,14 @@ npm publish
 ```
 
 - Requires npm credentials (`npm login`) and ownership of the scope. This
-  package publishes as `@mr-1124/deploy-cli` because the unscoped
+  package publishes as `@mayan1124/deploy-cli` because the unscoped
   `deploy-cli` name is already taken on the registry; the bin key stays
   `deploy`.
 - First publish of a scoped package: `npm publish --access public`.
 - After publishing, install from the registry and verify:
 
 ```bash
-npm install -g @mr-1124/deploy-cli
+npm install -g @mayan1124/deploy-cli
 deploy --version
 deploy --help
 ```

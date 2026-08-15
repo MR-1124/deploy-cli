@@ -12,8 +12,8 @@ This repo ships a working workflow (`.github/workflows/preview.yml`) that:
 2. deploys the PR branch with `deploy preview --json`,
 3. comments the preview URL on the PR.
 
-Adapt it for your repo (the CLI needs to be installed — `npm i -g @mr-1124/deploy-cli`
-or `npm i -D @mr-1124/deploy-cli` and use `npx deploy`):
+Adapt it for your repo (the CLI needs to be installed — `npm i -g @mayan1124/deploy-cli`
+or `npm i -D @mayan1124/deploy-cli` and use `npx deploy`):
 
 ```yaml
 name: Preview deploy
@@ -25,7 +25,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with: { node-version: 20 }
-      - run: npm i -g @mr-1124/deploy-cli
+      - run: npm i -g @mayan1124/deploy-cli
       - name: Start control plane
         run: deploy server --port 8787 &
       - name: Login

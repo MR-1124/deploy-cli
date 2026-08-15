@@ -49,20 +49,28 @@ jobs:
           SMOKE_S3_BUCKET: ${{ secrets.SMOKE_S3_BUCKET }}
         run: npm run smoke
 
+      # Idempotent: if the version is already on the registry (e.g. the
+      # workflow was retried, or the publish was done manually), skip.
       - name: Publish to npm
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-        run: npm publish
+        run: |
+          V="$(node -p "require('./package.json').version")"
+          if [ "$(npm view @mayan1124/deploy-cli@$V version 2>/dev/null)" = "$V" ]; then
+            echo "version $V already published — skipping npm publish"
+          else
+            npm publish --access public
+          fi
 
       # Verify what actually landed on the registry, from a clean install.
       - name: Verify the published package
         run: |
           V="$(node -p "require('./package.json').version")"
-          [ "$(npm view @mr-1124/deploy-cli version)" = "$V" ]
+          [ "$(npm view @mayan1124/deploy-cli version)" = "$V" ]
           DIR="$(mktemp -d)"; cd "$DIR"
           npm init -y >/dev/null
-          npm install "@mr-1124/deploy-cli@$V" >/dev/null
+          npm install "@mayan1124/deploy-cli@$V" >/dev/null
           [ "$(./node_modules/.bin/deploy --version)" = "$V" ]
           ./node_modules/.bin/deploy doctor --json >/dev/null
-          node -e "import('@mr-1124/deploy-cli').then(m => { if (!('runDoctor' in m)) process.exit(1) })"
-          echo "published @mr-1124/deploy-cli@$V verified from a clean install"
+          node -e "import('@mayan1124/deploy-cli').then(m => { if (!('runDoctor' in m)) process.exit(1) })"
+          echo "published @mayan1124/deploy-cli@$V verified from a clean install"

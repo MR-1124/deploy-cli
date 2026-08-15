@@ -7,7 +7,7 @@ Netlify, Vercel, Cloudflare Pages, or S3 instead.
 ## 1. Install
 
 ```bash
-npm install -g @mr-1124/deploy-cli
+npm install -g @mayan1124/deploy-cli
 ```
 
 ## 2. Start the local control plane
