@@ -49,7 +49,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
  * after the API reports ready for DNS/SSL/edge to propagate, so retry with
  * backoff instead of failing on the first 404/522.
  */
-async function check(url, { attempts = 16, baseMs = 1500 } = {}) {
+async function check(url, needle = "smoke-ok", { attempts = 16, baseMs = 1500 } = {}) {
   let last = null;
   for (let i = 0; i < attempts; i++) {
     let res, text;
@@ -61,12 +61,12 @@ async function check(url, { attempts = 16, baseMs = 1500 } = {}) {
       await sleep(baseMs * (i + 1) * 0.5);
       continue;
     }
-    if (res.status === 200 && text.includes("smoke-ok")) return;
+    if (res.status === 200 && text.includes(needle)) return;
     last = new Error(`URL ${url} → HTTP ${res.status}, expected content missing`);
     if (res.status < 500 && res.status !== 404 && res.status !== 522) break; // hard failure
     await sleep(baseMs * (i + 1) * 0.5);
   }
-  throw last || new Error(`URL ${url} never served the smoke content`);
+  throw last || new Error(`URL ${url} never served ${needle}`);
 }
 
 async function smokeNetlify() {
@@ -87,18 +87,24 @@ async function smokeNetlify() {
 
 async function smokeVercel() {
   if (!config.providers.vercel.token) return skip("vercel");
-  const { url, id } = await PROVIDERS.vercel.deploy({
-    project: process.env.SMOKE_VERCEL_PROJECT || "smoke",
-    outDir: tmp,
-    preview: false,
-    branch: null,
-    flags: {},
-    config,
-    rc: {},
-  });
-  await check(url);
-  await PROVIDERS.vercel.rollback({ project: process.env.SMOKE_VERCEL_PROJECT || "smoke", deployId: id, flags: {}, config, rc: {} });
-  pass("vercel", url);
+  const project = process.env.SMOKE_VERCEL_PROJECT || "smoke";
+  const flags = {};
+  // Distinct content per deploy so rollback is verifiable end to end.
+  const tmp2 = fs.mkdtempSync(path.join(os.tmpdir(), "smoke-v2-"));
+  fs.writeFileSync(path.join(tmp2, "index.html"), "<h1>smoke-v2</h1>");
+  fs.writeFileSync(path.join(tmp2, "asset.txt"), "v2-content");
+
+  // first deploy becomes production
+  const d1 = await PROVIDERS.vercel.deploy({ project, outDir: tmp, preview: false, branch: null, flags, config, rc: {} });
+  await check(d1.url);
+  // second deploy is the new production
+  const d2 = await PROVIDERS.vercel.deploy({ project, outDir: tmp2, preview: false, branch: null, flags, config, rc: {} });
+  await check(d2.url, "smoke-v2");
+  // roll back production to the FIRST deploy — the one not currently live
+  // (Vercel 422s if you roll back to the current production deployment)
+  await PROVIDERS.vercel.rollback({ project, deployId: d1.id, flags, config, rc: {} });
+  await check(d1.url, "smoke-ok");
+  pass("vercel", d1.url);
 }
 
 async function smokeCloudflare() {
