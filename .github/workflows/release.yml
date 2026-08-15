@@ -13,11 +13,11 @@ jobs:
   test-and-publish:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
-          node-version: 20
+          node-version: 24
           registry-url: https://registry.npmjs.org/
 
       # Guard: never publish a tag whose version doesn't match package.json.
@@ -50,27 +50,35 @@ jobs:
         run: npm run smoke
 
       # Idempotent: if the version is already on the registry (e.g. the
-      # workflow was retried, or the publish was done manually), skip.
+      # workflow was retried, or the publish was done manually), skip — but
+      # still validate the publish token so a broken NPM_TOKEN can't hide.
       - name: Publish to npm
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
           V="$(node -p "require('./package.json').version")"
           if [ "$(npm view @mayan1124/deploy-cli@$V version 2>/dev/null)" = "$V" ]; then
-            echo "version $V already published — skipping npm publish"
+            npm whoami >/dev/null 2>&1 || { echo "::error::NPM_TOKEN is invalid — publishing will fail for the next version"; exit 1; }
+            echo "version $V already published — skipping npm publish (auth OK)"
           else
             npm publish --access public
           fi
 
       # Verify what actually landed on the registry, from a clean install.
+      # The package is public, so verification must not depend on the publish
+      # token: a bad NODE_AUTH_TOKEN in the runner npmrc would 401 the install.
       - name: Verify the published package
         run: |
           V="$(node -p "require('./package.json').version")"
-          [ "$(npm view @mayan1124/deploy-cli version)" = "$V" ]
+          echo "verifying @mayan1124/deploy-cli@$V"
+          npm config delete '//registry.npmjs.org/:_authToken' >/dev/null 2>&1 || true
+          REG="$(npm view @mayan1124/deploy-cli version)" || { echo "::error::npm view failed"; exit 1; }
+          [ "$REG" = "$V" ] || { echo "::error::registry has $REG, expected $V"; exit 1; }
           DIR="$(mktemp -d)"; cd "$DIR"
           npm init -y >/dev/null
-          npm install "@mayan1124/deploy-cli@$V" >/dev/null
-          [ "$(./node_modules/.bin/deploy --version)" = "$V" ]
-          ./node_modules/.bin/deploy doctor --json >/dev/null
-          node -e "import('@mayan1124/deploy-cli').then(m => { if (!('runDoctor' in m)) process.exit(1) })"
+          npm install "@mayan1124/deploy-cli@$V" >/dev/null || { echo "::error::npm install failed"; exit 1; }
+          ACT="$(./node_modules/.bin/deploy --version)" || { echo "::error::deploy --version failed"; exit 1; }
+          [ "$ACT" = "$V" ] || { echo "::error::deploy reports $ACT, expected $V"; exit 1; }
+          ./node_modules/.bin/deploy doctor --json >/dev/null || { echo "::error::deploy doctor failed"; exit 1; }
+          node -e "import('@mayan1124/deploy-cli').then(m => { if (!('runDoctor' in m)) process.exit(1) })" || { echo "::error::API import failed"; exit 1; }
           echo "published @mayan1124/deploy-cli@$V verified from a clean install"
