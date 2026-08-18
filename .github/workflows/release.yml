@@ -30,6 +30,9 @@ jobs:
             exit 1
           fi
 
+      - name: Install dependencies
+        run: npm ci
+
       - name: Run the full test suite
         run: npm test
 
