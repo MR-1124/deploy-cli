@@ -347,6 +347,7 @@ assert.equal(v4[1].production, true, "current production deployment marked");
 // Cloudflare Pages
 // =============================================================================
 
+let cfPolls = 0;
 const cfServer = await startServer(async (req, res) => {
   const url = new URL(req.url, "http://x");
   const body = await readBody(req);
@@ -415,8 +416,12 @@ const cfServer = await startServer(async (req, res) => {
   }
   const oneDeploy = url.pathname.match(/^\/accounts\/acct1\/pages\/projects\/([^/]+)\/deployments\/([^/]+)$/);
   if (oneDeploy && req.method === "GET") {
+    // status lives in latest_stage; first poll is still idle (proves deploy() waits)
+    if (oneDeploy[2] === "dep-cf" && cfPolls++ === 0) {
+      return json(res, 200, { result: { id: "dep-cf", latest_stage: { status: "idle" }, url: "https://abc.myproj.pages.dev" } });
+    }
     const url2 = oneDeploy[2] === "dep-cf2" ? "https://def.newproj.pages.dev" : "https://abc.myproj.pages.dev";
-    return json(res, 200, { result: { id: oneDeploy[2], status: "success", url: url2 } });
+    return json(res, 200, { result: { id: oneDeploy[2], latest_stage: { status: "success" }, url: url2 } });
   }
   if (url.pathname === "/accounts/acct1/pages/projects/myproj/deployments" && req.method === "GET") {
     return json(res, 200, {
@@ -443,6 +448,8 @@ const cf1 = await cloudflare.deploy({
 });
 assert.equal(cf1.id, "dep-cf");
 assert.equal(cf1.url, "https://abc.myproj.pages.dev");
+assert.equal(cf1.state, "success");
+assert.ok(cfPolls >= 2, "deploy() polled latest_stage until success (saw idle then success)");
 
 // auto-create project on 404
 const cf2 = await cloudflare.deploy({
