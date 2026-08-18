@@ -379,7 +379,7 @@ Implementation notes:
 | Idempotency                   | `x-idempotency-key` header, deduped by the local server |
 | Pre-flight checks             | `lib/preflight.js` — file-count/size caps with `--force` override |
 | CDN / caching / TLS           | faked — local static serving, no cache              |
-| Checksums                     | sha1 (Netlify digest), sha256 (Vercel upload), SigV4 payload hashes (S3) |
+| Checksums                     | sha1 (Netlify digest), sha1 (Vercel upload), blake3 (Cloudflare Pages), SigV4 payload hashes (S3) |
 
 The URL model, alias semantics, and rollback mechanics are *real* and portable:
 the same client logic speaks to the production API by changing `--server`.

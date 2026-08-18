@@ -7,6 +7,8 @@ import http from "node:http";
 import os from "node:os";
 import path from "node:path";
 
+import { blake3 } from "hash-wasm";
+
 import { zipDirectory } from "../lib/zip.js";
 import { PROVIDERS } from "../lib/providers/index.js";
 
@@ -73,6 +75,10 @@ function readZip(buf) {
 
 const sha1 = (b) => crypto.createHash("sha1").update(b).digest("hex");
 const sha256 = (b) => crypto.createHash("sha256").update(b).digest("hex");
+
+// Cloudflare Pages content hash — mirrors wrangler's hashFile exactly:
+// blake3(base64(content) + extension).hex.slice(0, 32)
+const cfHash = async (buf, ext) => (await blake3(buf.toString("base64") + ext)).slice(0, 32);
 
 // --- fixtures ----------------------------------------------------------------
 
@@ -357,14 +363,14 @@ const cfServer = await startServer(async (req, res) => {
     assert.equal(req.headers.authorization, "Bearer cf_jwt");
     const { hashes } = JSON.parse(body.toString("utf8"));
     assert.equal(hashes.length, 2);
-    assert.ok(hashes.includes(sha256(INDEX)));
-    return json(res, 200, { result: [sha256(INDEX)] }); // only index.html is missing
+    assert.ok(hashes.includes(await cfHash(INDEX, "html")));
+    return json(res, 200, { result: [await cfHash(INDEX, "html")] }); // only index.html is missing
   }
   if (url.pathname === "/pages/assets/upload" && req.method === "POST") {
     assert.equal(req.headers.authorization, "Bearer cf_jwt");
     const payload = JSON.parse(body.toString("utf8"));
     assert.equal(payload.length, 1, "only the missing file is uploaded");
-    assert.equal(payload[0].key, sha256(INDEX));
+    assert.equal(payload[0].key, await cfHash(INDEX, "html"));
     assert.equal(payload[0].value, Buffer.from(INDEX).toString("base64"));
     assert.equal(payload[0].metadata.contentType, "text/html");
     assert.equal(payload[0].base64, true);
@@ -398,12 +404,12 @@ const cfServer = await startServer(async (req, res) => {
   }
   const deployMatch = url.pathname.match(/^\/accounts\/acct1\/pages\/projects\/([^/]+)\/deployments$/);
   if (deployMatch && req.method === "POST") {
-    // multipart form-data carrying the manifest field (JSON of path → sha256)
+    // multipart form-data carrying the manifest field (JSON of path → blake3 hash)
     assert.match(req.headers["content-type"], /multipart\/form-data; boundary=/);
     const fields = parseForm(body, req.headers["content-type"]);
     const manifest = JSON.parse(fields.manifest);
-    assert.equal(manifest["/index.html"], sha256(INDEX));
-    assert.equal(manifest["/assets/app.css"], sha256(CSS));
+    assert.equal(manifest["/index.html"], await cfHash(INDEX, "html"));
+    assert.equal(manifest["/assets/app.css"], await cfHash(CSS, "css"));
     assert.ok(!("branch" in fields), "no branch field for production deploys");
     const isNew = deployMatch[1] === "newproj";
     return json(res, 200, {

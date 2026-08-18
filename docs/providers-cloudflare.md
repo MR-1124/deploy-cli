@@ -25,10 +25,13 @@ deploy up --provider cloudflare
 
 - The project is **auto-created** on first deploy (`production_branch: main`).
 - Upload strategy (current direct-upload contract, same as wrangler): the CLI
-  fetches a short-lived **upload JWT**, uploads file content keyed by sha256
-  (only the hashes Pages doesn't already have), then creates the deployment
-  with a `manifest` JSON field mapping file paths → sha256. The deployment is
-  **polled until `success`** (default; `--no-wait` skips).
+  fetches a short-lived **upload JWT**, uploads file content keyed by the
+  Pages content hash (only the hashes Pages doesn't already have), then creates
+  the deployment with a `manifest` JSON field mapping file paths → content
+  hash. The hash is **blake3(base64(content) + extension)** truncated to 32 hex
+  chars — wrangler's exact `hashFile` (plain sha256 is rejected at serve time
+  with HTTP 500). The deployment is **polled until `success`** (default;
+  `--no-wait` skips).
 - Note: asset uploads are authorized by the short-lived upload JWT, not your
   API token (the CLI handles this).
 

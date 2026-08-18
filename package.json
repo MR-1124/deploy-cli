@@ -44,5 +44,8 @@
     "type": "git",
     "url": "git+https://github.com/MR-1124/deploy-cli.git"
   },
-  "author": "deploy-cli contributors"
+  "author": "deploy-cli contributors",
+  "dependencies": {
+    "hash-wasm": "^4.12.0"
+  }
 }
