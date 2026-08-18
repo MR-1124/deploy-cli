@@ -45,6 +45,9 @@ h1 { font-size: clamp(2.6rem, 6vw, 4.4rem); line-height: 1.05; margin: 0 0 1rem;
 .lede { max-width: 620px; color: var(--muted); font-size: 1.1rem; margin: 0 0 1.8rem; }
 .badges { display: flex; gap: 0.6rem; align-items: center; flex-wrap: wrap; margin-bottom: 1.6rem; }
 .badges img { border-radius: 6px; display: block; }
+.pipeline-strip { text-align: center; padding: 0 1.5rem 3.5rem; }
+.pipeline-strip a { color: var(--muted); font-size: 0.95rem; }
+.pipeline-strip a:hover { color: var(--accent-2); text-decoration: underline; }
 
 .install { display: flex; gap: 0.6rem; align-items: stretch; margin-bottom: 2rem; }
 .install code {
