@@ -3,6 +3,11 @@
 [![release pipeline: tests + 4-provider smoke + publish](https://github.com/MR-1124/deploy-cli/actions/workflows/release.yml/badge.svg)](https://github.com/MR-1124/deploy-cli/actions/workflows/release.yml)
 [![npm](https://img.shields.io/npm/v/@mayan1124%2Fdeploy-cli)](https://www.npmjs.com/package/@mayan1124/deploy-cli)
 
+> **Built with AI assistance.** This project was initially generated with AI
+tooling under the maintainer's direction. Every change is reviewed, tested, and
+shipped through the same pipeline as any other project — the code stands on its
+own. Contributions are welcome however the code was written.
+
 **🌐 Website: [`site/`](./site/) — the landing page is a static site you can
 ship with the CLI itself** (it's what's serving this project's preview tab).
 
