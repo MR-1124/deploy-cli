@@ -26,6 +26,18 @@ function json(res, status, data) {
   res.end(JSON.stringify(data));
 }
 
+// Minimal multipart/form-data parser (text fields only).
+function parseForm(buf, contentType) {
+  const m = /boundary=(.+)$/.exec(contentType);
+  assert.ok(m, "boundary present");
+  const fields = {};
+  for (const part of buf.toString("utf8").split(`--${m[1]}`)) {
+    const header = /name="([^"]+)"[\s\S]*?\r\n\r\n([\s\S]*)$/.exec(part);
+    if (header) fields[header[1]] = header[2].replace(/\r\n$/, "");
+  }
+  return fields;
+}
+
 function startServer(handler) {
   const server = http.createServer(handler);
   return new Promise((resolve) => server.listen(0, "127.0.0.1", () => resolve(server)));
@@ -335,31 +347,47 @@ assert.equal(v4[1].production, true, "current production deployment marked");
 // Cloudflare Pages
 // =============================================================================
 
-let cfNewprojAttempts = 0;
 const cfServer = await startServer(async (req, res) => {
   const url = new URL(req.url, "http://x");
   const body = await readBody(req);
 
-  // pre-signed upload URLs carry no bearer token
-  if (url.pathname === "/upload" && req.method === "POST") {
-    const text = body.toString("utf8");
-    assert.match(req.headers["content-type"], /multipart\/form-data; boundary=/);
-    assert.ok(text.includes('name="key"'), "pre-signed form field included");
-    assert.ok(text.includes('name="file"; filename="index.html"'), "file part named correctly");
-    assert.ok(text.includes("<h1>hello providers</h1>"), "file bytes present");
-    return json(res, 200, { success: true, result: { code: 8000001 } });
+  // asset endpoints are authorized by the upload JWT, not the API token
+  if (url.pathname === "/pages/assets/check-missing" && req.method === "POST") {
+    assert.equal(req.headers.authorization, "Bearer cf_jwt");
+    const { hashes } = JSON.parse(body.toString("utf8"));
+    assert.equal(hashes.length, 2);
+    assert.ok(hashes.includes(sha256(INDEX)));
+    return json(res, 200, { result: [sha256(INDEX)] }); // only index.html is missing
+  }
+  if (url.pathname === "/pages/assets/upload" && req.method === "POST") {
+    assert.equal(req.headers.authorization, "Bearer cf_jwt");
+    const payload = JSON.parse(body.toString("utf8"));
+    assert.equal(payload.length, 1, "only the missing file is uploaded");
+    assert.equal(payload[0].key, sha256(INDEX));
+    assert.equal(payload[0].value, Buffer.from(INDEX).toString("base64"));
+    assert.equal(payload[0].metadata.contentType, "text/html");
+    assert.equal(payload[0].base64, true);
+    return json(res, 200, { result: {} });
+  }
+  if (url.pathname === "/pages/assets/upsert-hashes" && req.method === "POST") {
+    assert.equal(req.headers.authorization, "Bearer cf_jwt");
+    const { hashes } = JSON.parse(body.toString("utf8"));
+    assert.equal(hashes.length, 2);
+    return json(res, 200, { result: {} });
   }
 
   if (req.headers.authorization !== "Bearer cf_test") return json(res, 401, { errors: [{ message: "unauthorized" }] });
 
-  if (url.pathname === "/accounts/acct1/pages/projects/newproj/deployments" && req.method === "POST") {
-    if (cfNewprojAttempts++ === 0) return json(res, 404, { errors: [{ message: "project not found" }] });
-    // second attempt (after project creation) succeeds
-    const digests = JSON.parse(body.toString("utf8")).files;
-    assert.equal(digests["/index.html"], sha256(INDEX));
-    return json(res, 200, {
-      result: { id: "dep-cf2", url: "https://def.newproj.pages.dev", required: {}, upload_url: `${baseOf(cfServer)}/upload`, form_fields: {} },
-    });
+  // upload-token issues the short-lived JWT used by the asset endpoints
+  if (/^\/accounts\/acct1\/pages\/projects\/[^/]+\/upload-token$/.test(url.pathname) && req.method === "GET") {
+    return json(res, 200, { result: { jwt: "cf_jwt" } });
+  }
+  if (url.pathname === "/accounts/acct1/pages/projects/myproj" && req.method === "GET") {
+    return json(res, 200, { result: { id: "proj1", name: "myproj" } });
+  }
+  // newproj does not exist → 404 triggers auto-create
+  if (url.pathname === "/accounts/acct1/pages/projects/newproj" && req.method === "GET") {
+    return json(res, 404, { errors: [{ message: "project not found" }] });
   }
   if (url.pathname === "/accounts/acct1/pages/projects" && req.method === "POST") {
     const p = JSON.parse(body.toString("utf8"));
@@ -369,15 +397,19 @@ const cfServer = await startServer(async (req, res) => {
   }
   const deployMatch = url.pathname.match(/^\/accounts\/acct1\/pages\/projects\/([^/]+)\/deployments$/);
   if (deployMatch && req.method === "POST") {
-    const digests = JSON.parse(body.toString("utf8")).files;
-    assert.equal(digests["/index.html"], sha256(INDEX));
+    // multipart form-data carrying the manifest field (JSON of path → sha256)
+    assert.match(req.headers["content-type"], /multipart\/form-data; boundary=/);
+    const fields = parseForm(body, req.headers["content-type"]);
+    const manifest = JSON.parse(fields.manifest);
+    assert.equal(manifest["/index.html"], sha256(INDEX));
+    assert.equal(manifest["/assets/app.css"], sha256(CSS));
+    assert.ok(!("branch" in fields), "no branch field for production deploys");
+    const isNew = deployMatch[1] === "newproj";
     return json(res, 200, {
       result: {
-        id: "dep-cf",
-        url: "https://abc.myproj.pages.dev",
-        required: { "/index.html": sha256(INDEX) },
-        upload_url: `${baseOf(cfServer)}/upload`,
-        form_fields: { key: "abc123" },
+        id: isNew ? "dep-cf2" : "dep-cf",
+        url: isNew ? "https://def.newproj.pages.dev" : "https://abc.myproj.pages.dev",
+        status: "idle",
       },
     });
   }
@@ -511,5 +543,5 @@ delete process.env.CLOUDFLARE_API_BASE;
 delete process.env.AWS_S3_ENDPOINT;
 
 console.log(
-  "✔ provider tests passed (netlify digest+zip+create+rollback+list, vercel sha-upload+manifest+rollback+list, cloudflare direct-upload, s3 sigv4)"
+  "✔ provider tests passed (netlify digest+zip+create+rollback+list, vercel sha-upload+manifest+rollback+list, cloudflare jwt-upload+manifest, s3 sigv4)"
 );
