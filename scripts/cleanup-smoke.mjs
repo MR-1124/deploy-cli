@@ -147,9 +147,10 @@ async function cleanCloudflare() {
   if (!token || !accountId) return skip("cloudflare");
   const base = process.env.CLOUDFLARE_API_BASE || "https://api.cloudflare.com/client/v4";
   const found = [];
+  // the Pages projects list API rejects per_page above 25 with a 400
   for (let page = 1; page <= 10; page++) {
     const url = new URL(`${base}/accounts/${accountId}/pages/projects`);
-    url.searchParams.set("per_page", "100");
+    url.searchParams.set("per_page", "25");
     url.searchParams.set("page", String(page));
     const res = await api(url, {}, "cloudflare", token);
     const data = await res.json();
