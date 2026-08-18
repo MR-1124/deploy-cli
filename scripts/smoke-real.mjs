@@ -193,7 +193,7 @@ async function smokeVercel() {
 
 async function smokeCloudflare() {
   if (!config.providers.cloudflare.token || !config.providers.cloudflare.accountId) return skip("cloudflare");
-  const { url } = await PROVIDERS.cloudflare.deploy({
+  const { url, id } = await PROVIDERS.cloudflare.deploy({
     project: "smoke-" + Date.now(),
     outDir: tmp,
     preview: false,
@@ -202,7 +202,10 @@ async function smokeCloudflare() {
     config,
     rc: {},
   });
-  await check(url);
+  // brand-new pages.dev hostnames can take a while for DNS to propagate, so
+  // print the URL before the check — if it fails, the URL is right there.
+  console.log(`  cloudflare deployment: ${id} @ ${url}`);
+  await check(url, "smoke-ok", { attempts: 24 });
   pass("cloudflare", url);
 }
 
