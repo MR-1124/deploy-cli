@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Quickstart — deploy-cli</title>
+  <meta name="description" content="Get deploy-cli running in minutes: install, start the control plane, ship your first site, and deploy React apps to Netlify, Vercel, Cloudflare Pages, or S3.">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="nav">
+    <div class="nav-inner">
+      <a class="brand" href="index.html"><span class="brand-mark">▲</span> deploy-cli</a>
+      <nav>
+        <a href="features.html">Features</a>
+        <a href="providers.html">Providers</a>
+        <a href="quickstart.html">Quickstart</a>
+        <a href="docs.html">Docs</a>
+        <a class="ghost" href="https://github.com/MR-1124/deploy-cli" target="_blank" rel="noopener">GitHub ↗</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="page">
+    <a class="back" href="index.html">← Home</a>
+    <h1>Quickstart</h1>
+    <p class="page-lede">
+      Ship your first site to the bundled local control plane in about two
+      minutes — no cloud accounts required. Then push the same commands at
+      Netlify, Vercel, Cloudflare Pages, or S3.
+    </p>
+
+    <h2>1. Install</h2>
+    <pre><code>npm install -g @mayan1124/deploy-cli</code></pre>
+    <p>Verify:</p>
+    <pre><code>deploy --version
+deploy --help</code></pre>
+    <div class="callout">
+      <strong>Requirements:</strong> Node.js ≥ 18 (the CLI uses built-in <code>fetch</code> — no other
+      dependencies). In a checkout you can also run <code>node cli.js up</code>, or
+      <code>npm link</code> to get a global <code>deploy</code> command pointing at your repo.
+      Update with <code>npm update -g @mayan1124/deploy-cli</code>.
+    </div>
+
+    <h2>2. Start the local control plane</h2>
+    <p>The control plane stores deploys and serves them on <code>:8787</code>:</p>
+    <pre><code>deploy server
+# deploy server on http://localhost:8787
+#   storage: ./.deploy-storage
+#   token:   dev-token</code></pre>
+    <p>Leave it running in its own terminal. Port taken? <code>deploy server --port 9000</code>,
+      then <code>deploy login --server http://localhost:9000</code>.</p>
+
+    <h2>3. Login</h2>
+    <pre><code>deploy login
+# ✔ Credentials saved for http://localhost:8787</code></pre>
+    <p>
+      In a terminal you'll be asked which provider and (for host providers) your
+      token — typed into a <strong>masked prompt</strong> so it never shows on screen. Tokens
+      are stored in <code>~/.deploy-cli/config.json</code> (mode 0600). Override the
+      location with <code>DEPLOY_CONFIG_DIR</code>, useful in CI and sandboxes. Skip the
+      prompts anytime with flags: <code>deploy login --provider netlify --token &lt;PAT&gt;</code>.
+    </p>
+
+    <h2>4. Deploy</h2>
+    <p>From your project root (any project with a build script, a <code>public/</code> folder,
+      or an <code>index.html</code>):</p>
+    <pre><code>deploy</code></pre>
+    <p>In a terminal you get the interactive menu — pick <strong>Deploy now</strong>. Or skip
+      the menu with <code>deploy up</code>:</p>
+    <pre><code>deploy up</code></pre>
+    <p>The CLI will:</p>
+    <ol>
+      <li><strong>Detect your build</strong> — reads <code>package.json</code>, finds <code>"build"</code>, and
+        runs it with the package manager detected from lockfiles (<code>npm</code>, <code>pnpm</code>,
+        <code>yarn</code>, or <code>bun</code>).</li>
+      <li><strong>Find the output folder</strong> — <code>dist/</code>, <code>build/</code>, <code>out/</code>,
+        <code>public/</code>, or the project root if it's already static.</li>
+      <li><strong>Upload it and print your URLs:</strong></li>
+    </ol>
+    <pre><code>✔ Deployed 20260815-091200-ab12
+  URL:    http://localhost:8787/my-app/latest/
+  Deploy: http://localhost:8787/my-app/20260815-091200-ab12/</code></pre>
+    <table>
+      <tr><th>URL</th><th>Meaning</th></tr>
+      <tr><td><code>…/latest/</code></td><td>the alias that always points at the current deploy</td></tr>
+      <tr><td><code>…/20260815-…/</code></td><td>the immutable URL for this exact deploy — never changes</td></tr>
+    </table>
+
+    <h2>5. Open it</h2>
+    <pre><code>deploy up --open      # opens the URL in your browser</code></pre>
+
+    <h2>What's next</h2>
+    <ul>
+      <li><strong>Iterate:</strong> <code>deploy watch</code> rebuilds and redeploys on every file change.</li>
+      <li><strong>Preview a branch:</strong> <code>deploy preview</code> — production is untouched.</li>
+      <li><strong>Roll back:</strong> <code>deploy rollback &lt;deployId&gt;</code> — instant alias re-point.</li>
+      <li><strong>Compare:</strong> <code>deploy diff</code> shows what changed vs the last local deploy.</li>
+      <li><strong>Deploy to a real host:</strong> see <a href="providers.html">Providers</a>.</li>
+    </ul>
+
+    <h2>Deploying React apps</h2>
+    <p>React projects are <strong>auto-detected</strong>: the CLI runs your build script and
+      finds the output folder.</p>
+    <h3>Vite</h3>
+    <p><code>vite build</code> outputs to <code>dist/</code> — detected automatically:</p>
+    <pre><code>cd my-vite-app
+deploy up                        # local control plane
+deploy up --provider netlify --site my-site
+deploy up --provider vercel</code></pre>
+    <h3>Create React App</h3>
+    <p><code>react-scripts build</code> outputs to <code>build/</code> — also auto-detected:</p>
+    <pre><code>cd my-cra-app
+deploy up</code></pre>
+    <h3>Custom output folders</h3>
+    <pre><code>deploy up --dir out
+# or permanently:
+echo '{ "outDir": "out" }' > .deployrc.json</code></pre>
+    <h3>Build-time environment variables</h3>
+    <p><code>VITE_*</code> / <code>REACT_APP_*</code> variables are baked in during the build, which runs
+      on your machine, so they just work:</p>
+    <pre><code>VITE_API_URL=https://api.example.com deploy up</code></pre>
+    <h3>Client-side routing (React Router)</h3>
+    <p>
+      With <code>BrowserRouter</code>, deep links (<code>/about</code>) are resolved by the
+      <em>server</em> on a static host — and 404 unless you add a fallback to
+      <code>index.html</code>:
+    </p>
+    <ul>
+      <li><strong>Netlify</strong> — add <code>public/_redirects</code>:
+        <pre><code>/* /index.html 200</code></pre></li>
+      <li><strong>Vercel</strong> — add <code>vercel.json</code>:
+        <pre><code>{ "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }] }</code></pre></li>
+      <li><strong>Local control plane</strong> — serves files as-is, so deep links 404 today
+        (SPA fallback is on the roadmap); the root works fine.</li>
+      <li><strong>Cloudflare Pages / S3</strong> — use each host's equivalent SPA routing config.</li>
+    </ul>
+    <h3>Preview a branch</h3>
+    <pre><code>git checkout -b feat/landing
+deploy preview --provider netlify
+# URL on the branch preview — production untouched</code></pre>
+
+    <div class="callout">
+      <strong>One caveat for React + API:</strong> the CLI ships static output. Point your
+      API calls at a separate host, or pre-build any functions into the output
+      folder — this CLI uploads built output, so host functions must already be
+      built to be included.
+    </div>
+
+    <p class="page-lede" style="margin-top: 2.4rem">
+      Deep dives on every command and host: <a href="features.html">Features</a> and
+      <a href="providers.html">Providers</a>.
+    </p>
+  </main>
+
+  <footer>
+    <p>▲ deploy-cli — MIT licensed · <a href="https://github.com/MR-1124/deploy-cli" target="_blank" rel="noopener">source on GitHub</a></p>
+    <p class="tiny">Zero dependencies · Node ≥ 18 · built by the deploy-cli contributors</p>
+  </footer>
+</body>
+</html>

@@ -1,0 +1,235 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Providers — deploy-cli</title>
+  <meta name="description" content="deploy-cli providers, documented in depth: the bundled local control plane, Netlify, Vercel, Cloudflare Pages, and S3 — setup, upload contracts, rollback, and limits for each.">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="nav">
+    <div class="nav-inner">
+      <a class="brand" href="index.html"><span class="brand-mark">▲</span> deploy-cli</a>
+      <nav>
+        <a href="features.html">Features</a>
+        <a href="providers.html">Providers</a>
+        <a href="quickstart.html">Quickstart</a>
+        <a href="docs.html">Docs</a>
+        <a class="ghost" href="https://github.com/MR-1124/deploy-cli" target="_blank" rel="noopener">GitHub ↗</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="page">
+    <a class="back" href="index.html">← Home</a>
+    <h1>Providers</h1>
+    <p class="page-lede">
+      One CLI, five targets. Every provider is driven through that host's
+      documented REST API — no provider CLIs installed, and the same commands
+      (<code>up</code>, <code>preview</code>, <code>rollback</code>, <code>list</code>) work
+      everywhere.
+    </p>
+
+    <div class="prov-nav">
+      <a href="#local">local</a>
+      <a href="#netlify">netlify</a>
+      <a href="#vercel">vercel</a>
+      <a href="#cloudflare">cloudflare</a>
+      <a href="#s3">s3</a>
+    </div>
+
+    <table>
+      <tr><th>Provider</th><th>How it uploads</th><th>Rollback</th></tr>
+      <tr><td><code>local</code></td><td>tar → bundled control plane (<code>:8787</code>)</td><td>alias re-point (instant)</td></tr>
+      <tr><td><code>netlify</code></td><td>digest uploads (production) / zip (previews)</td><td>restore previous deploy</td></tr>
+      <tr><td><code>vercel</code></td><td>SHA1 file uploads (<code>/v2/files</code>) + files manifest</td><td>instant rollback</td></tr>
+      <tr><td><code>cloudflare</code></td><td>Pages direct upload (upload-token flow)</td><td>dashboard (no API)</td></tr>
+      <tr><td><code>s3</code></td><td>SigV4-signed PutObject</td><td>re-upload (no built-in)</td></tr>
+    </table>
+
+    <h2 id="local">local — bundled control plane</h2>
+    <p>
+      The CLI's own hosting: a small HTTP server that stores deploys, keeps
+      aliases, and serves static files. It's what makes previews and rollback
+      trivially available with <strong>zero cloud accounts</strong>.
+    </p>
+    <h3>Start it</h3>
+    <pre><code>deploy server
+# deploy server on http://localhost:8787
+#   storage: ./.deploy-storage
+#   token:   dev-token</code></pre>
+    <p><code>--storage</code> changes where deploys live; <code>--token</code> (or
+      <code>DEPLOY_SERVER_TOKEN</code>) changes the write token; <code>--port</code> changes the port.</p>
+    <h3>Deploy</h3>
+    <pre><code>deploy login
+deploy up
+#   URL:    http://localhost:8787/&lt;project&gt;/latest/
+#   Deploy: http://localhost:8787/&lt;project&gt;/&lt;deployId&gt;/</code></pre>
+    <h3>Rollback &amp; iterate</h3>
+    <p>
+      <code>deploy rollback &lt;deployId&gt;</code> is an instant alias flip — no bytes move.
+      <code>deploy diff</code> and <code>deploy watch</code> work against the local provider
+      out of the box.
+    </p>
+    <h3>Data layout</h3>
+    <pre><code>.deploy-storage/
+  registry.json          # projects, deploys, aliases (+ idempotency keys)
+  &lt;project&gt;/
+    &lt;deployId&gt;/          # one immutable folder per deploy
+      index.html
+      assets/...</code></pre>
+    <div class="callout warn">
+      The control plane is a prototype of the hosted service in
+      <code>ARCHITECTURE.md</code> — single process, single storage dir, no auth on reads
+      (the public side), bearer token on writes. For production hosting use a real
+      provider; the CLI targets both with the same commands.
+    </div>
+
+    <h2 id="netlify">netlify</h2>
+    <p>Deploys through the official Netlify REST API — no Netlify CLI needed.</p>
+    <h3>Setup</h3>
+    <ol>
+      <li>Create a <strong>Personal Access Token</strong> at app.netlify.com → User settings →
+        Applications → Personal access tokens.</li>
+      <li>Save it: <code>deploy login --provider netlify --token &lt;PAT&gt;</code></li>
+    </ol>
+    <h3>Deploy</h3>
+    <pre><code>deploy up --provider netlify --site my-site
+#   URL:    https://my-site.netlify.app
+#   Deploy: https://&lt;hash&gt;--my-site.netlify.app</code></pre>
+    <p>The site is <strong>auto-created</strong> if it doesn't exist (name from
+      <code>--site</code>, or <code>netlify.site</code> in <code>.deployrc.json</code>, or the project
+      name). Site names are globally unique on <code>*.netlify.app</code>.</p>
+    <h3>How uploads work</h3>
+    <ul>
+      <li><strong>Production (<code>up</code>):</strong> the <em>digest method</em> — the CLI sends the
+        SHA1 of every file, Netlify says which are missing, and only those are
+        uploaded. No zip size caps, no 30-second request limit, deduped across deploys.</li>
+      <li><strong>Previews (<code>deploy preview</code>):</strong> branch deploys use the <em>zip method</em>
+        with a <code>branch</code> query param — the documented way to create branch deploys.</li>
+      <li>Override with <code>--method zip|digest</code>.</li>
+      <li>The CLI <strong>polls until the deploy is <code>ready</code></strong> (default;
+        <code>--no-wait</code> skips, <code>--timeout &lt;s&gt;</code> bounds it).</li>
+    </ul>
+    <h3>Rollback &amp; limits</h3>
+    <pre><code>deploy list --provider netlify          # find the deployId
+deploy rollback &lt;deployId&gt; --provider netlify</code></pre>
+    <p>Uses the restore endpoint — the previous deploy becomes production again.
+      API limits: 3 deploys/min and 100/day per account. Netlify reads
+      <code>_redirects</code> / <code>_headers</code> from the build output.</p>
+
+    <h2 id="vercel">vercel</h2>
+    <p>Deploys through the Vercel REST API.</p>
+    <h3>Setup</h3>
+    <ol>
+      <li>Create a token at <strong>vercel.com/account/tokens</strong>.</li>
+      <li>Save it (team id optional, for team-owned projects):
+        <code>deploy login --provider vercel --token &lt;token&gt;</code> or
+        <code>deploy login --provider vercel --token &lt;token&gt; --team &lt;teamId&gt;</code></li>
+    </ol>
+    <h3>Deploy</h3>
+    <pre><code>deploy up --provider vercel
+#   URL:    https://&lt;project&gt;.vercel.app
+#   Deploy: https://&lt;project&gt;-&lt;hash&gt;.vercel.app</code></pre>
+    <p>The project is auto-created on first deploy. <code>up</code> sets
+      <code>target: production</code>; <code>preview</code> omits it. The CLI uploads
+      <strong>already-built</strong> output and tells Vercel not to run its own build.</p>
+    <h3>How uploads work</h3>
+    <p>
+      Every file is uploaded once via <code>POST /v2/files</code> keyed by <strong>SHA1</strong>
+      (a 409 means "already uploaded" and is treated as success). The deployment
+      references the shas — no giant base64 request body, and unchanged files
+      between deploys are naturally deduped. The CLI then <strong>polls until the
+      deployment is <code>READY</code></strong> before claiming the URL.
+    </p>
+    <h3>Rollback</h3>
+    <pre><code>deploy list --provider vercel           # find the deployment id
+deploy rollback &lt;deploymentId&gt; --provider vercel</code></pre>
+    <p>Uses Vercel's instant-rollback endpoint (the same one the Vercel CLI uses).
+      Preview deployments don't receive the production alias; <code>rollback</code> and
+      <code>list</code> target the project's production line.</p>
+
+    <h2 id="cloudflare">cloudflare — Pages</h2>
+    <p>Deploys via the Cloudflare Pages <strong>direct upload</strong> API.</p>
+    <h3>Setup</h3>
+    <ol>
+      <li>Create an API token at dash.cloudflare.com → My Profile → API Tokens with
+        <strong>Cloudflare Pages: Edit</strong> permission.</li>
+      <li>You also need your <strong>account id</strong> (dashboard right sidebar, or any Pages URL).</li>
+      <li>Save both: <code>deploy login --provider cloudflare --token &lt;token&gt; --account &lt;accountId&gt;</code></li>
+    </ol>
+    <h3>Deploy</h3>
+    <pre><code>deploy up --provider cloudflare
+#   URL: https://&lt;hash&gt;.&lt;project&gt;.pages.dev</code></pre>
+    <p>The project is <strong>auto-created</strong> on first deploy
+      (<code>production_branch: main</code>).</p>
+    <h3>How uploads work</h3>
+    <p>
+      The current direct-upload contract (same as wrangler): the CLI fetches a
+      short-lived <strong>upload JWT</strong>, uploads file content keyed by the Pages
+      content hash (only the hashes Pages doesn't already have), then creates the
+      deployment with a <code>manifest</code> JSON field mapping file paths → content hash.
+      The hash is <strong>blake3(base64(content) + extension)</strong> truncated to 32 hex
+      chars — wrangler's exact <code>hashFile</code> (plain sha256 is rejected at serve time
+      with HTTP 500). The deployment is <strong>polled until <code>success</code></strong>
+      (default; <code>--no-wait</code> skips). Asset uploads are authorized by the
+      short-lived JWT, not your API token — the CLI handles this.
+    </p>
+    <h3>Rollback</h3>
+    <pre><code>deploy rollback &lt;id&gt; --provider cloudflare
+# ✖ Cloudflare Pages has no rollback API — restore from your dashboard …</code></pre>
+    <p>Cloudflare Pages has <strong>no rollback endpoint</strong>, so the command says so
+      clearly. Use the dashboard's rollback UI, or redeploy the previous content.
+      <code>deploy list --provider cloudflare</code> shows deployments and marks the current
+      production.</p>
+
+    <h2 id="s3">s3</h2>
+    <p>Deploys static files to an S3 bucket using <strong>AWS Signature V4</strong> signing
+      implemented from scratch — no AWS SDK dependency.</p>
+    <h3>Setup</h3>
+    <ol>
+      <li>Create an access key with <code>s3:PutObject</code> (and <code>s3:ListBucket</code>) on
+        your bucket. Bucket must have static website hosting enabled for a
+        browser-friendly URL.</li>
+      <li>Save the credentials:
+        <pre><code>deploy login --provider s3 --access-key &lt;AK&gt; --secret-key &lt;SK&gt; --bucket &lt;name&gt; --region us-east-1
+# optional key prefix (default: project name)
+deploy login --provider s3 --access-key &lt;AK&gt; --secret-key &lt;SK&gt; --bucket &lt;name&gt; --prefix my-site</code></pre>
+        <code>AWS_ACCESS_KEY_ID</code> / <code>AWS_SECRET_ACCESS_KEY</code> env vars also work.</li>
+    </ol>
+    <h3>Deploy</h3>
+    <pre><code>deploy up --provider s3
+# → s3://&lt;bucket&gt;/&lt;project&gt;/
+#   URL: https://&lt;bucket&gt;.s3.&lt;region&gt;.amazonaws.com/&lt;project&gt;/</code></pre>
+    <p>Every file is a SigV4-signed <code>PutObject</code> under
+      <code>s3://&lt;bucket&gt;/&lt;prefix&gt;/&lt;path&gt;</code>. If the bucket has website hosting
+      enabled, your real URL is
+      <code>https://&lt;bucket&gt;.s3-website-&lt;region&gt;.amazonaws.com/&lt;prefix&gt;/</code>.</p>
+    <h3>Rollback &amp; list</h3>
+    <pre><code>deploy rollback &lt;id&gt; --provider s3
+# ✖ S3 has no built-in rollback — restore from a previous deploy's files …</code></pre>
+    <p>Plain S3 has no aliases or version pointer, so rollback isn't supported — the
+      command says so clearly. Options: enable S3 versioning and serve through a
+      proxy, or re-upload the previous content. <code>deploy list --provider s3</code> uses
+      <code>ListObjectsV2</code>.</p>
+    <h3>Security notes</h3>
+    <ul>
+      <li>Every request (including listings) is SigV4-signed — nothing is public
+        unless your bucket policy says so.</li>
+      <li>Test endpoints via <code>AWS_S3_ENDPOINT</code> (the test suite runs against a mock
+        that recomputes and verifies each signature).</li>
+    </ul>
+
+    <p class="page-lede" style="margin-top: 2.4rem">
+      Provider-by-provider markdown lives in <a href="docs.html">the docs hub</a> —
+      deeper dives on upload contracts, limits, and gotchas.
+    </p>
+  </main>
+
+  <footer>
+    <p>▲ deploy-cli — MIT licensed · <a href="https://github.com/MR-1124/deploy-cli" target="_blank" rel="noopener">source on GitHub</a></p>
+    <p class="tiny">Zero dependencies · Node ≥ 18 · built by the deploy-cli contributors</p>
+  </footer>
+</body>
+</html>

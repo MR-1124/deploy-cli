@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Documentation — deploy-cli</title>
+  <meta name="description" content="The deploy-cli documentation hub: install, quickstart, commands, interactive UI, provider guides, React, CI/CD, smoke testing, troubleshooting, publishing, and architecture.">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="nav">
+    <div class="nav-inner">
+      <a class="brand" href="index.html"><span class="brand-mark">▲</span> deploy-cli</a>
+      <nav>
+        <a href="features.html">Features</a>
+        <a href="providers.html">Providers</a>
+        <a href="quickstart.html">Quickstart</a>
+        <a href="docs.html">Docs</a>
+        <a class="ghost" href="https://github.com/MR-1124/deploy-cli" target="_blank" rel="noopener">GitHub ↗</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="page">
+    <a class="back" href="index.html">← Home</a>
+    <h1>Documentation</h1>
+    <p class="page-lede">
+      Every guide in the repo, indexed. The markdown sources live in
+      <code>docs/</code> on GitHub — these pages are the same content rendered for the web.
+    </p>
+
+    <h2>Getting started</h2>
+    <div class="doc-grid">
+      <div class="doc-card">
+        <h3><a href="https://github.com/MR-1124/deploy-cli/blob/main/docs/install.md">Install</a></h3>
+        <p>Requirements (Node ≥ 18, zero deps), npm install, <code>npm link</code> for
+          development, updating, and first-run login.</p>
+      </div>
+      <div class="doc-card">
+        <h3><a href="quickstart.html">Quickstart</a></h3>
+        <p>The two-minute tour: install, control plane, login, first deploy, and
+          what to try next.</p>
+      </div>
+      <div class="doc-card">
+        <h3><a href="https://github.com/MR-1124/deploy-cli/blob/main/docs/commands.md">Commands</a></h3>
+        <p>The full CLI reference: <code>up</code>, <code>preview</code>, <code>rollback</code>,
+          <code>list</code>, <code>status</code>, <code>diff</code>, <code>watch</code>, <code>login</code>,
+          <code>server</code>, <code>completion</code>, <code>token</code> — plus every flag.</p>
+      </div>
+      <div class="doc-card">
+        <h3><a href="https://github.com/MR-1124/deploy-cli/blob/main/docs/interactive.md">Interactive UI</a></h3>
+        <p>The terminal menu, masked token entry, arrow-key pickers, and how every
+          prompt degrades safely in CI.</p>
+      </div>
+    </div>
+
+    <h2>Providers</h2>
+    <div class="doc-grid">
+      <div class="doc-card">
+        <h3><a href="https://github.com/MR-1124/deploy-cli/blob/main/docs/providers-local.md">local</a></h3>
+        <p>The bundled control plane: URLs, aliases, instant rollback, data layout,
+          and what it's a prototype of.</p>
+      </div>
+      <div class="doc-card">
+        <h3><a href="https://github.com/MR-1124/deploy-cli/blob/main/docs/providers-netlify.md">netlify</a></h3>
+        <p>PAT setup, digest vs zip uploads, auto-created sites, restore-based
+          rollback, API rate limits, <code>_redirects</code> / <code>_headers</code>.</p>
+      </div>
+      <div class="doc-card">
+        <h3><a href="https://github.com/MR-1124/deploy-cli/blob/main/docs/providers-vercel.md">vercel</a></h3>
+        <p>Token setup, SHA1 <code>/v2/files</code> uploads, production vs preview targets,
+          READY polling, instant rollback.</p>
+      </div>
+      <div class="doc-card">
+        <h3><a href="https://github.com/MR-1124/deploy-cli/blob/main/docs/providers-cloudflare.md">cloudflare</a></h3>
+        <p>Pages:Edit token + account id, the upload-token direct-upload flow, the
+          blake3 content hash, and the no-rollback-API reality.</p>
+      </div>
+      <div class="doc-card">
+        <h3><a href="https://github.com/MR-1124/deploy-cli/blob/main/docs/providers-s3.md">s3</a></h3>
+        <p>Access keys, SigV4 signing from scratch, prefixes, website-hosting URLs,
+          <code>ListObjectsV2</code>, and security notes.</p>
+      </div>
+    </div>
+
+    <h2>Guides</h2>
+    <div class="doc-grid">
+      <div class="doc-card">
+        <h3><a href="https://github.com/MR-1124/deploy-cli/blob/main/docs/react.md">React &amp; Vite</a></h3>
+        <p>Auto-detected builds, custom output folders, env vars, and SPA routing
+          fallbacks for React Router on every host.</p>
+      </div>
+      <div class="doc-card">
+        <h3><a href="https://github.com/MR-1124/deploy-cli/blob/main/docs/ci.md">CI/CD</a></h3>
+        <p>The PR preview workflow, deploying to Netlify/Vercel from CI with
+          secrets, <code>--json</code> output, and <code>DEPLOY_CONFIG_DIR</code>.</p>
+      </div>
+      <div class="doc-card">
+        <h3><a href="https://github.com/MR-1124/deploy-cli/blob/main/docs/smoke-test.md">Smoke test</a></h3>
+        <p>How the real-account smoke test works on all four hosts, the credentials
+          and permissions each needs, and cleanup of the artifacts.</p>
+      </div>
+      <div class="doc-card">
+        <h3><a href="https://github.com/MR-1124/deploy-cli/blob/main/docs/troubleshooting.md">Troubleshooting</a></h3>
+        <p>Start with <code>deploy doctor</code>; then every common failure mode — tokens,
+          missing output dirs, rate limits, deep links, port conflicts — and its fix.</p>
+      </div>
+      <div class="doc-card">
+        <h3><a href="https://github.com/MR-1124/deploy-cli/blob/main/docs/publish.md">Publishing</a></h3>
+        <p>The workflow-driven release flow: <code>npm version patch</code> + tag push runs
+          tests, the 4-provider smoke, cleanup, npm publish, verification, and the
+          GitHub Release automatically.</p>
+      </div>
+    </div>
+
+    <h2>Under the hood</h2>
+    <div class="doc-grid">
+      <div class="doc-card">
+        <h3><a href="https://github.com/MR-1124/deploy-cli/blob/main/ARCHITECTURE.md">Architecture</a></h3>
+        <p>The production design: auth, blob storage, CDN, per-deploy URLs,
+          rollback, previews — and how the prototype implements the same URL model
+          locally.</p>
+      </div>
+      <div class="doc-card">
+        <h3><a href="https://github.com/MR-1124/deploy-cli/blob/main/README.md">README</a></h3>
+        <p>The top-level overview: what the CLI does, the provider table, upload
+          strategy notes, and the pipeline status.</p>
+      </div>
+    </div>
+
+    <h2>Live references</h2>
+    <ul>
+      <li><a href="https://github.com/MR-1124/deploy-cli/actions/workflows/release.yml" target="_blank" rel="noopener">Release pipeline runs</a>
+        — tests, the 4-provider smoke, cleanup, publish, and verification.</li>
+      <li><a href="https://github.com/MR-1124/deploy-cli/releases" target="_blank" rel="noopener">Releases</a>
+        — every tagged version with its release notes.</li>
+      <li><a href="https://www.npmjs.com/package/@mayan1124/deploy-cli" target="_blank" rel="noopener">npm package</a>
+        — install and version history.</li>
+    </ul>
+
+    <div class="callout">
+      Found something missing or wrong in these docs? The repo is
+      <a href="https://github.com/MR-1124/deploy-cli" target="_blank" rel="noopener">open source</a> —
+      issues and pull requests welcome.
+    </div>
+  </main>
+
+  <footer>
+    <p>▲ deploy-cli — MIT licensed · <a href="https://github.com/MR-1124/deploy-cli" target="_blank" rel="noopener">source on GitHub</a></p>
+    <p class="tiny">Zero dependencies · Node ≥ 18 · built by the deploy-cli contributors</p>
+  </footer>
+</body>
+</html>

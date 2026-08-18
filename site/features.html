@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Features — deploy-cli</title>
+  <meta name="description" content="Every feature of deploy-cli, documented in depth: one-command deploys, the URL and alias model, the full command reference, interactive UI, CI-safe output, and reliability guarantees.">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="nav">
+    <div class="nav-inner">
+      <a class="brand" href="index.html"><span class="brand-mark">▲</span> deploy-cli</a>
+      <nav>
+        <a href="features.html">Features</a>
+        <a href="providers.html">Providers</a>
+        <a href="quickstart.html">Quickstart</a>
+        <a href="docs.html">Docs</a>
+        <a class="ghost" href="https://github.com/MR-1124/deploy-cli" target="_blank" rel="noopener">GitHub ↗</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="page">
+    <a class="back" href="index.html">← Home</a>
+    <h1>Features</h1>
+    <p class="page-lede">
+      One command takes a project from source to a live URL — with immutable
+      deploy URLs, a mutable alias for production, instant rollback, previews,
+      and a terminal UI that is also fully scriptable.
+    </p>
+
+    <h2>The core loop</h2>
+    <p>
+      <code>deploy up</code> (or bare <code>deploy</code>) does the whole job in
+      one step:
+    </p>
+    <ol>
+      <li><strong>Detect the build.</strong> Reads <code>package.json</code>, finds the
+        <code>"build"</code> script, and runs it with the package manager detected from
+        your lockfile — <code>npm</code>, <code>pnpm</code>, <code>yarn</code>, or
+        <code>bun</code>. No build script? It skips straight to the output folder.</li>
+      <li><strong>Find the output.</strong> Looks in <code>dist/</code>, <code>build/</code>,
+        <code>out/</code>, or <code>public/</code> — or treats the project root as static if
+        it already contains an <code>index.html</code>. Override any of it with
+        <code>--dir &lt;path&gt;</code> or <code>.deployrc.json</code> → <code>{"outDir": "…"}</code>.</li>
+      <li><strong>Upload.</strong> Ships the folder to whichever provider you chose, using
+        that host's documented upload contract (see <a href="providers.html">Providers</a>).</li>
+      <li><strong>Print the URL.</strong> Both the production alias and the immutable
+        per-deploy URL.</li>
+    </ol>
+    <div class="callout">
+      Every file is uploaded once, unchanged files between deploys are deduped,
+      and uploads are <strong>idempotent</strong> — a retried upload never creates
+      duplicates. Network failures and 5xx/429 responses are retried
+      automatically with exponential backoff.
+    </div>
+
+    <h2>URL model &amp; aliases</h2>
+    <p>Every deploy gets a stable address; production is a pointer that can move:</p>
+    <table>
+      <tr><th>URL</th><th>Meaning</th></tr>
+      <tr><td><code>…/latest/</code></td><td>the alias that always points at the current production deploy</td></tr>
+      <tr><td><code>…/preview-&lt;branch&gt;/</code></td><td>preview alias, created by <code>deploy preview</code></td></tr>
+      <tr><td><code>…/&lt;deployId&gt;/</code></td><td>immutable — that exact upload, forever</td></tr>
+    </table>
+    <p>
+      Aliases are pointers in the control plane's <code>registry.json</code> — flipping one
+      is the rollback operation, so no bytes ever move.
+    </p>
+
+    <h2>Command reference</h2>
+    <div class="cmd-grid">
+      <div class="cmd-card"><code>deploy</code><p>The interactive menu in a terminal; otherwise behaves as <code>up</code>.</p></div>
+      <div class="cmd-card"><code>deploy up</code><p>Build + upload + print the live URL. The day-to-day command.</p></div>
+      <div class="cmd-card"><code>deploy preview</code><p>Deploy the current branch to its own preview URL — production untouched.</p></div>
+      <div class="cmd-card"><code>deploy rollback &lt;id&gt;</code><p>Re-point the production alias at a previous deploy. Instant locally.</p></div>
+      <div class="cmd-card"><code>deploy list</code><p>Deploy history for the project; ★ marks the current production.</p></div>
+      <div class="cmd-card"><code>deploy status</code><p>Project, default provider, per-provider login state, last deploy.</p></div>
+      <div class="cmd-card"><code>deploy diff</code><p>Added/changed/removed files vs the latest local deploy.</p></div>
+      <div class="cmd-card"><code>deploy watch</code><p>Deploy once, then rebuild + redeploy on every file change. Ctrl+C stops it.</p></div>
+      <div class="cmd-card"><code>deploy login</code><p>Save credentials — interactive with a masked prompt, or with flags.</p></div>
+      <div class="cmd-card"><code>deploy server</code><p>Start the bundled local control plane (<code>--port</code>, <code>--storage</code>, <code>--token</code>).</p></div>
+      <div class="cmd-card"><code>deploy doctor</code><p>Health report: config, login state, and a live connectivity probe per provider.</p></div>
+      <div class="cmd-card"><code>deploy completion &lt;shell&gt;</code><p>bash / zsh / fish tab completions.</p></div>
+      <div class="cmd-card"><code>deploy token</code><p>Print the dev server's write token.</p></div>
+    </div>
+
+    <h3>Common flags</h3>
+    <table>
+      <tr><th>Flag</th><th>Effect</th></tr>
+      <tr><td><code>--project &lt;name&gt;</code></td><td>override the project name (default: package.json name or folder name)</td></tr>
+      <tr><td><code>--dir &lt;path&gt;</code></td><td>upload this folder instead of the detected output dir</td></tr>
+      <tr><td><code>--no-build</code></td><td>skip the build step entirely (handy in CI after an earlier job built)</td></tr>
+      <tr><td><code>--provider &lt;name&gt;</code></td><td><code>local | netlify | vercel | cloudflare | s3</code></td></tr>
+      <tr><td><code>--open</code></td><td>open the deploy URL in your browser</td></tr>
+      <tr><td><code>--wait</code> / <code>--no-wait</code></td><td>wait for the host to finish processing (default: wait)</td></tr>
+      <tr><td><code>--timeout &lt;s&gt;</code></td><td>bound host polling (default 60s)</td></tr>
+      <tr><td><code>--force</code></td><td>skip pre-flight caps (25,000 files / 250 MB)</td></tr>
+      <tr><td><code>--json</code></td><td>machine-readable stdout; human messages go to stderr</td></tr>
+      <tr><td><code>--verbose</code></td><td>stack traces for debugging</td></tr>
+    </table>
+
+    <h2>Interactive terminal UI</h2>
+    <p>
+      Bare <code>deploy</code> in a terminal shows a menu — <em>Deploy now, Preview deploy,
+      Login, List deploys, Rollback, Status, Watch, Diff, Quit</em> — navigated with
+      arrow keys. <code>deploy login</code> and <code>deploy rollback</code> use the same
+      pickers, and token entry is <strong>masked</strong>: you see <code>********</code>,
+      never the value. All of it is ~150 lines of <code>readline</code> — zero dependencies.
+    </p>
+    <div class="callout warn">
+      Prompts only appear when stdout is a terminal. In scripts and CI they
+      degrade to numbered input (or fail fast), so a pipeline can never hang on
+      a question. Force the interactive path with <code>DEPLOY_FORCE_TTY=1</code>.
+    </div>
+
+    <h2>CI-safe by design</h2>
+    <ul>
+      <li><code>--json</code> keeps stdout pure JSON — parse it with <code>jq .url</code> or any JSON tool.</li>
+      <li>Tokens come from env vars (<code>NETLIFY_AUTH_TOKEN</code>, <code>VERCEL_TOKEN</code>,
+        <code>CLOUDFLARE_API_TOKEN</code>, <code>AWS_ACCESS_KEY_ID</code>/<code>AWS_SECRET_ACCESS_KEY</code>)
+        or the config file — never prompts.</li>
+      <li><code>DEPLOY_CONFIG_DIR</code> moves the credential file out of the workspace (e.g. <code>$RUNNER_TEMP</code>).</li>
+      <li>The bundled control plane means preview deploys need no external accounts.</li>
+    </ul>
+
+    <h2>Reliability</h2>
+    <ul>
+      <li><strong>Retries with backoff</strong> on network errors and 5xx/429 for every provider.</li>
+      <li><strong>Idempotent uploads</strong> — retrying never duplicates a deploy or an object.</li>
+      <li><strong>Pre-flight checks</strong> warn before you hit host caps; <code>--force</code> overrides.</li>
+      <li><strong>Host-aware waits</strong> — Netlify polls to <code>ready</code>, Vercel to <code>READY</code>,
+        Cloudflare to <code>success</code>, so the URL you get back actually serves.</li>
+      <li><strong><code>deploy doctor</code></strong> verifies config, login state, and live host connectivity
+        — run it before blaming the deploy.</li>
+    </ul>
+
+    <h2>Security</h2>
+    <ul>
+      <li>Credentials live in <code>~/.deploy-cli/config.json</code> (mode 0600), never in the repo.</li>
+      <li>The control plane's public side is read-only; writes require the bearer token.</li>
+      <li>Provider tokens are stored per provider and only sent to that provider's API.</li>
+      <li>Environment-var overrides (including <code>*_API_BASE</code> endpoints) let you test against
+        sandboxes or proxies without touching production.</li>
+    </ul>
+
+    <p class="page-lede" style="margin-top: 2.4rem">
+      Want the quick tour? <a href="quickstart.html">Ship your first deploy in two minutes →</a>
+    </p>
+  </main>
+
+  <footer>
+    <p>▲ deploy-cli — MIT licensed · <a href="https://github.com/MR-1124/deploy-cli" target="_blank" rel="noopener">source on GitHub</a></p>
+    <p class="tiny">Zero dependencies · Node ≥ 18 · built by the deploy-cli contributors</p>
+  </footer>
+</body>
+</html>

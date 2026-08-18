@@ -155,3 +155,40 @@ section h2 { font-size: 1.8rem; margin: 0 0 1.6rem; }
 
 footer { border-top: 1px solid var(--border); padding: 2rem 1.5rem; text-align: center; color: var(--muted); }
 footer .tiny { font-size: 0.8rem; }
+
+/* long-form doc pages (features / providers / quickstart / docs) */
+.page { max-width: 1040px; margin: 0 auto; padding: 3.2rem 1.5rem 4rem; }
+.page h1 { font-size: clamp(1.9rem, 4vw, 2.7rem); letter-spacing: -0.02em; margin: 0 0 0.5rem; }
+.page .page-lede { color: var(--muted); font-size: 1.08rem; max-width: 740px; margin: 0 0 1.4rem; }
+.page .back { display: inline-block; color: var(--muted); font-size: 0.9rem; margin-bottom: 1.4rem; }
+.page .back:hover { color: var(--accent-2); }
+.page h2 { font-size: 1.45rem; margin: 2.6rem 0 0.9rem; padding-top: 0.6rem; border-top: 1px solid var(--border); }
+.page h2:first-of-type { border-top: 0; }
+.page h3 { font-size: 1.12rem; margin: 1.8rem 0 0.5rem; }
+.page p, .page li { color: #c6d0e0; }
+.page ul, .page ol { padding-left: 1.4rem; }
+.page li { margin: 0.35rem 0; }
+.page code { background: var(--code-bg); border: 1px solid var(--border); border-radius: 6px; padding: 0.12rem 0.4rem; color: var(--accent); font-size: 0.9em; }
+.page pre { background: var(--code-bg); border: 1px solid var(--border); border-radius: 10px; padding: 1rem 1.1rem; overflow-x: auto; line-height: 1.55; margin: 0.9rem 0; }
+.page pre code { background: none; border: 0; padding: 0; color: #c9d4e3; font-size: 0.84rem; }
+.page table { width: 100%; border-collapse: collapse; margin: 1rem 0 1.4rem; font-size: 0.95rem; }
+.page th { text-align: left; color: var(--muted); font-weight: 600; border-bottom: 1px solid var(--border); padding: 0.5rem 0.8rem; white-space: nowrap; }
+.page td { border-bottom: 1px solid var(--border); padding: 0.55rem 0.8rem; color: #c6d0e0; vertical-align: top; }
+.page tr:last-child td { border-bottom: 0; }
+.callout { border: 1px solid var(--border); border-left: 3px solid var(--accent); background: var(--panel); border-radius: 8px; padding: 0.85rem 1.05rem; margin: 1.2rem 0; color: #c6d0e0; font-size: 0.95rem; }
+.callout.warn { border-left-color: #e3b341; }
+.callout code { background: var(--code-bg); border: 1px solid var(--border); border-radius: 6px; padding: 0.1rem 0.35rem; color: var(--accent); }
+.cmd-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(270px, 1fr)); gap: 1rem; margin: 1.2rem 0; }
+.cmd-card { background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius); padding: 1rem 1.15rem; }
+.cmd-card code { background: none; border: 0; padding: 0; color: var(--accent); font-weight: 600; }
+.cmd-card p { margin: 0.45rem 0 0; color: var(--muted); font-size: 0.92rem; }
+.prov-nav { display: flex; flex-wrap: wrap; gap: 0.6rem; margin: 0 0 1.6rem; }
+.prov-nav a { background: var(--panel); border: 1px solid var(--border); border-radius: 999px; padding: 0.4rem 1rem; font-size: 0.9rem; color: var(--fg); }
+.prov-nav a:hover { border-color: var(--accent); text-decoration: none; }
+.doc-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1rem; margin: 1.4rem 0; }
+.doc-card { background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.15rem 1.25rem; }
+.doc-card h3 { margin: 0 0 0.35rem; }
+.doc-card h3 a { color: var(--fg); }
+.doc-card h3 a:hover { color: var(--accent-2); }
+.doc-card p { margin: 0; color: var(--muted); font-size: 0.92rem; }
+.doc-card code { background: var(--code-bg); border: 1px solid var(--border); border-radius: 6px; padding: 0.1rem 0.35rem; color: var(--accent); font-size: 0.85em; }
