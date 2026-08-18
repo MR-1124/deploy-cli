@@ -76,11 +76,20 @@ jobs:
           V="$(node -p "require('./package.json').version")"
           echo "verifying @mayan1124/deploy-cli@$V"
           npm config delete '//registry.npmjs.org/:_authToken' >/dev/null 2>&1 || true
-          REG="$(npm view @mayan1124/deploy-cli version)" || { echo "::error::npm view failed"; exit 1; }
+          # npmjs CDN can lag a few seconds behind publish — retry the reads
+          REG=""
+          for i in 1 2 3 4 5 6; do
+            REG="$(npm view @mayan1124/deploy-cli version 2>/dev/null)" && [ "$REG" = "$V" ] && break
+            sleep 5
+          done
           [ "$REG" = "$V" ] || { echo "::error::registry has $REG, expected $V"; exit 1; }
           DIR="$(mktemp -d)"; cd "$DIR"
           npm init -y >/dev/null
-          npm install "@mayan1124/deploy-cli@$V" >/dev/null || { echo "::error::npm install failed"; exit 1; }
+          for i in 1 2 3 4 5 6; do
+            npm install "@mayan1124/deploy-cli@$V" >/dev/null 2>&1 && break
+            sleep 5
+          done
+          test -x ./node_modules/.bin/deploy || { echo "::error::npm install failed"; exit 1; }
           ACT="$(./node_modules/.bin/deploy --version | tr -d '\r')" || { echo "::error::deploy --version failed"; exit 1; }
           if [ "$ACT" != "$V" ]; then
             echo "::debug::ACT=[$ACT] length=${#ACT} hex=$(printf '%s' "$ACT" | od -An -tx1 | tr -d ' \n')"

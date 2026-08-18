@@ -4,7 +4,7 @@
   "description": "One-command deploys for static sites: local control plane, Netlify, Vercel, Cloudflare Pages, and S3 from a single CLI with an interactive UI, previews, rollback, and a health-check doctor.",
   "type": "module",
   "bin": {
-    "deploy": "./cli.js"
+    "deploy": "cli.js"
   },
   "main": "./lib/index.js",
   "exports": {
