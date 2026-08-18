@@ -81,8 +81,14 @@ jobs:
           DIR="$(mktemp -d)"; cd "$DIR"
           npm init -y >/dev/null
           npm install "@mayan1124/deploy-cli@$V" >/dev/null || { echo "::error::npm install failed"; exit 1; }
-          ACT="$(./node_modules/.bin/deploy --version)" || { echo "::error::deploy --version failed"; exit 1; }
-          [ "$ACT" = "$V" ] || { echo "::error::deploy reports $ACT, expected $V"; exit 1; }
+          ACT="$(./node_modules/.bin/deploy --version | tr -d '\r')" || { echo "::error::deploy --version failed"; exit 1; }
+          if [ "$ACT" != "$V" ]; then
+            echo "::debug::ACT=[$ACT] length=${#ACT} hex=$(printf '%s' "$ACT" | od -An -tx1 | tr -d ' \n')"
+            echo "::debug::bin: $(ls -la node_modules/.bin/ | tr '\n' ' ')"
+            echo "::debug::direct: $(node node_modules/@mayan1124/deploy-cli/cli.js --version)"
+            echo "::error::deploy reports [$ACT], expected $V"
+            exit 1
+          fi
           ./node_modules/.bin/deploy doctor --json >/dev/null || { echo "::error::deploy doctor failed"; exit 1; }
           node -e "import('@mayan1124/deploy-cli').then(m => { if (!('runDoctor' in m)) process.exit(1) })" || { echo "::error::API import failed"; exit 1; }
           echo "published @mayan1124/deploy-cli@$V verified from a clean install"
