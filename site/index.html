@@ -24,13 +24,17 @@
   <main id="top">
     <section class="hero">
       <div class="hero-inner">
-        <p class="eyebrow">▲ deploy-cli v0.3</p>
+        <p class="eyebrow">▲ deploy-cli v0.3.2</p>
         <h1>One command<br><span class="gradient">to ship.</span></h1>
         <p class="lede">
           Build, upload, and get a live URL — for your own control plane,
           Netlify, Vercel, Cloudflare Pages, or S3. With previews, instant
           rollback, and an interactive terminal UI.
         </p>
+        <div class="badges">
+          <a href="https://github.com/MR-1124/deploy-cli/actions/workflows/release.yml" target="_blank" rel="noopener"><img src="https://github.com/MR-1124/deploy-cli/actions/workflows/release.yml/badge.svg" alt="release pipeline: tests + 4-provider smoke + publish"></a>
+          <a href="https://www.npmjs.com/package/@mayan1124/deploy-cli" target="_blank" rel="noopener"><img src="https://img.shields.io/npm/v/@mayan1124%2Fdeploy-cli" alt="npm version"></a>
+        </div>
         <div class="install">
           <code id="install-cmd">npm install -g @mayan1124/deploy-cli</code>
           <button id="copy-btn" aria-label="Copy install command">Copy</button>
@@ -81,6 +85,13 @@
         <div class="provider"><span class="dot cloudflare"></span><strong>cloudflare</strong><small>Pages direct upload</small></div>
         <div class="provider"><span class="dot s3"></span><strong>s3</strong><small>SigV4 signed puts</small></div>
       </div>
+      <p class="pipeline">
+        Live-verified on every release: <strong>netlify</strong> ✔ ·
+        <strong>vercel</strong> ✔ · <strong>cloudflare</strong> ✔ ·
+        <strong>s3</strong> ✔ — each provider is smoke-deployed, content-checked,
+        and rolled back against the real host (<a href="https://github.com/MR-1124/deploy-cli/blob/main/docs/smoke-test.md" target="_blank" rel="noopener">how it's tested</a>), and the
+        release workflow cleans the artifacts up afterwards.
+      </p>
     </section>
 
     <section class="quickstart" id="quickstart">

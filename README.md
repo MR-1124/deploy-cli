@@ -1,5 +1,8 @@
 # deploy — one-command deploys for static sites
 
+[![release pipeline: tests + 4-provider smoke + publish](https://github.com/MR-1124/deploy-cli/actions/workflows/release.yml/badge.svg)](https://github.com/MR-1124/deploy-cli/actions/workflows/release.yml)
+[![npm](https://img.shields.io/npm/v/@mayan1124%2Fdeploy-cli)](https://www.npmjs.com/package/@mayan1124/deploy-cli)
+
 **🌐 Website: [`site/`](./site/) — the landing page is a static site you can
 ship with the CLI itself** (it's what's serving this project's preview tab).
 
@@ -19,6 +22,23 @@ The production design (auth, blob storage, CDN, scaling) lives in
 [`ARCHITECTURE.md`](./ARCHITECTURE.md). The prototype implements the same URL
 model and alias semantics locally, and the provider layer means the CLI already
 talks to real hosts today.
+
+## Pipeline status
+
+Every tag release runs the **real-account smoke test** against all four hosts
+(see [`docs/smoke-test.md`](./docs/smoke-test.md)), publishes to npm, verifies
+the published package from a clean install, and creates the GitHub Release.
+The badge above tracks the latest run. Last verified in `v0.3.2` (2026-08-18):
+
+| Provider    | Smoke (deploy + content check) | Cleanup | Notes                                   |
+|-------------|-------------------------------|---------|------------------------------------------|
+| `netlify`   | ✔                             | ✔       | digest deploy + rollback                |
+| `vercel`    | ✔                             | ✔       | upload → READY wait → rollback          |
+| `cloudflare`| ✔                             | ✔       | Pages direct upload                     |
+| `s3`        | ✔                             | ⚠ needs `s3:DeleteObject` on the IAM user | SigV4 upload + content check          |
+
+Run it yourself anytime: `npm run smoke` (env vars or `deploy login`), then
+`npm run cleanup` to remove the test artifacts the run leaves behind.
 
 ## Quickstart
 
