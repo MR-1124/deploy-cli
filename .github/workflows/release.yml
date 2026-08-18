@@ -7,7 +7,7 @@ on:
       - "v*"
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   test-and-publish:
@@ -117,3 +117,14 @@ jobs:
           ./node_modules/.bin/deploy doctor --json >/dev/null || { echo "::error::deploy doctor failed"; exit 1; }
           node -e "import('@mayan1124/deploy-cli').then(m => { if (!('runDoctor' in m)) process.exit(1) })" || { echo "::error::API import failed"; exit 1; }
           echo "published @mayan1124/deploy-cli@$V verified from a clean install"
+
+      # GitHub Release with the templated notes (runs last, so it only fires
+      # once every other step is green). Idempotent for re-runs.
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="${GITHUB_REF#refs/tags/}"
+          sed -e "s/__VERSION__/$TAG/g" -e "s/__DATE__/$(date -u +%Y-%m-%d)/g" .github/release_template.md > /tmp/release-notes.md
+          gh release create "$TAG" --title "deploy-cli $TAG" --notes-file /tmp/release-notes.md \
+            || echo "release $TAG already exists — skipping"
