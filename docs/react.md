@@ -1,7 +1,14 @@
 # Deploying React apps
 
 React projects are auto-detected: the CLI runs your build script and finds the
-output folder.
+output folder. There's a runnable example in the repo — `examples/react-spa`
+(Vite + React Router) — deploy it with:
+
+```bash
+cd examples/react-spa && npm install && npm run build
+cd ../.. && deploy up --provider local --project react-spa --dir examples/react-spa/dist --no-build
+# then open any route: http://localhost:8787/react-spa/latest/about
+```
 
 ## Vite
 

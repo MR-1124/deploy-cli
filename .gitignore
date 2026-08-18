@@ -2,6 +2,7 @@ node_modules/
 .deploy-storage/
 .demo-config/
 examples/sample-site/dist/
+examples/react-spa/dist/
 *.log
 *.tgz
 .freebuff/
