@@ -61,7 +61,10 @@ async function api(url, opts = {}, provider, token) {
     ...opts,
     headers: { Authorization: `Bearer ${token}`, ...(opts.headers || {}) },
   });
-  if (!res.ok) throw new Error(`${provider} API ${res.status} ${url}: ${res.statusText}`);
+  if (!res.ok) {
+    const detail = (await res.text().catch(() => "")).slice(0, 300);
+    throw new Error(`${provider} API ${res.status} ${url}: ${res.statusText}${detail ? ` — ${detail}` : ""}`);
+  }
   return res;
 }
 
@@ -150,7 +153,7 @@ async function cleanCloudflare() {
   // the Pages projects list API rejects per_page above 25 with a 400
   for (let page = 1; page <= 10; page++) {
     const url = new URL(`${base}/accounts/${accountId}/pages/projects`);
-    url.searchParams.set("per_page", "25");
+    url.searchParams.set("per_page", "10");
     url.searchParams.set("page", String(page));
     const res = await api(url, {}, "cloudflare", token);
     const data = await res.json();
