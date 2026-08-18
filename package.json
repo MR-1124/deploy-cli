@@ -19,8 +19,9 @@
     "LICENSE"
   ],
   "scripts": {
-    "test": "node test/run.js && node test/providers.js && node test/cli.js && node test/ui.js",
+    "test": "node test/run.js && node test/providers.js && node test/cli.js && node test/ui.js && node test/cleanup.js",
     "smoke": "node scripts/smoke-real.mjs",
+    "cleanup": "node scripts/cleanup-smoke.mjs",
     "pack": "npm pack --dry-run"
   },
   "engines": {

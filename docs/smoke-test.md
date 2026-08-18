@@ -118,7 +118,7 @@ disable call is applied to your pinned project.
      "Statement": [
        {
          "Effect": "Allow",
-         "Action": ["s3:PutObject", "s3:GetObject"],
+         "Action": ["s3:PutObject", "s3:GetObject", "s3:DeleteObject"],
          "Resource": "arn:aws:s3:::YOUR-BUCKET-NAME/*"
        },
        {
@@ -130,6 +130,9 @@ disable call is applied to your pinned project.
    }
    ```
    These are exactly the calls the CLI makes: `PutObject` (upload), `GetObject` (content checks), `ListBucket` (`deploy list` + `deploy doctor`).
+   `DeleteObject` is only used by `npm run cleanup` — if you already created the
+   IAM user without it, just add the one action to the inline policy (or skip it
+   and never run the s3 cleanup leg).
 4. **Create the access key**: user → **Security credentials** → **Create access key** → *Application running outside AWS* → copy **Access key ID** and **Secret access key** — the secret is shown **once**.
 
 ### Where the values go
@@ -149,6 +152,26 @@ Add them as **repo secrets** (GitHub → Settings → Secrets and variables → 
 node cli.js login --provider cloudflare --token <TOKEN> --account <ACCOUNT_ID>
 node cli.js login --provider s3 --access-key <AK> --secret-key <SK> --bucket <NAME> [--region <R>]
 ```
+
+## Cleaning up leftover smoke artifacts
+
+Every smoke run leaves a `smoke-<timestamp>` Netlify site, Vercel project, and
+Cloudflare Pages project behind (plus objects under `smoke-<timestamp>/` in the
+S3 bucket). The cleanup script deletes them:
+
+```bash
+npm run cleanup                 # netlify + vercel + cloudflare
+npm run cleanup -- s3           # also remove S3 objects (opt-in: shared bucket)
+npm run cleanup -- --dry-run    # list what would be deleted, delete nothing
+npm run cleanup -- --yes        # skip the confirmation prompt (required in CI / non-TTY)
+```
+
+Credentials resolve exactly like the smoke: env vars win, then the `deploy login`
+config. **Safety rule:** only auto-generated names matching `smoke-<10+ digits>`
+are ever touched — a pinned `SMOKE_SITE` / `SMOKE_VERCEL_PROJECT` (or any
+custom-named project) is never matched, so your real projects can't be deleted.
+Anything you want gone but not auto-named (e.g. an older `smoke-mayan-*`
+project) must be deleted by hand from the provider dashboard.
 
 ## Notes
 
