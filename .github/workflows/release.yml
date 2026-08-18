@@ -53,6 +53,22 @@ jobs:
           SMOKE_S3_BUCKET: ${{ secrets.SMOKE_S3_BUCKET }}
         run: npm run smoke
 
+      # Self-cleaning: remove the smoke artifacts this run (and past runs)
+      # created on every provider. Non-fatal so a cleanup hiccup can never
+      # block a release.
+      - name: Clean up smoke artifacts
+        continue-on-error: true
+        env:
+          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: ${{ secrets.AWS_REGION }}
+          SMOKE_S3_BUCKET: ${{ secrets.SMOKE_S3_BUCKET }}
+        run: npm run cleanup -- netlify vercel cloudflare s3 --yes
+
       # Idempotent: if the version is already on the registry (e.g. the
       # workflow was retried, or the publish was done manually), skip — but
       # still validate the publish token so a broken NPM_TOKEN can't hide.
