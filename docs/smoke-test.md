@@ -173,6 +173,14 @@ custom-named project) is never matched, so your real projects can't be deleted.
 Anything you want gone but not auto-named (e.g. an older `smoke-mayan-*`
 project) must be deleted by hand from the provider dashboard.
 
+**The release workflow runs cleanup automatically** after the smoke, with the
+repo secrets (`npm run cleanup -- netlify vercel cloudflare s3 --yes`), so
+CI no longer strands artifacts. Known constraint: the Cloudflare Pages
+projects list API rejects `per_page` above 10 (returns 400), which the script
+handles; and the s3 leg needs `s3:DeleteObject` on the IAM user (see the
+permission section above) — until then it 403s and the step is skipped
+non-fatally.
+
 ## Notes
 
 - **Netlify free tier:** 3 deploys/min, 100/day. Don't rerun in a tight loop;
