@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Gallery — deploy-cli</title>
+  <meta name="description" content="Real projects deployed with deploy-cli: the landing page and sample site shipped to live hosts with one command, plus the four-provider smoke pipeline that verifies every release.">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="nav">
+    <div class="nav-inner">
+      <a class="brand" href="index.html"><span class="brand-mark">▲</span> deploy-cli</a>
+      <nav>
+        <a href="features.html">Features</a>
+        <a href="providers.html">Providers</a>
+        <a href="quickstart.html">Quickstart</a>
+        <a href="docs.html">Docs</a>
+        <a href="gallery.html">Gallery</a>
+        <a class="ghost" href="https://github.com/MR-1124/deploy-cli" target="_blank" rel="noopener">GitHub ↗</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="page">
+    <a class="back" href="index.html">← Home</a>
+    <h1>Gallery</h1>
+    <p class="page-lede">
+      Real projects shipped with deploy-cli. Each entry was deployed with the
+      exact command shown, is <strong>live right now</strong>, and was uploaded
+      with one of the CLI's provider integrations.
+    </p>
+
+    <h2>Live deployments</h2>
+    <div class="doc-grid">
+      <div class="doc-card">
+        <h3><a href="https://deploy-cli-smoke-1124.s3.ap-southeast-2.amazonaws.com/deploy-cli/" target="_blank" rel="noopener">deploy-cli website</a></h3>
+        <p>
+          This landing page and its docs — dogfooding: the CLI ships its own
+          website. Served from a plain S3 object-store URL, no website hosting
+          configured.
+        </p>
+        <p class="gallery-meta"><span class="tag">s3</span> <span class="tag live">● live</span></p>
+        <pre><code>deploy up --provider s3 --project deploy-cli --dir site --no-build</code></pre>
+      </div>
+
+      <div class="doc-card">
+        <h3><a href="https://deploy-cli-smoke-1124.s3.ap-southeast-2.amazonaws.com/sample-site/" target="_blank" rel="noopener">sample-site</a></h3>
+        <p>
+          The repo's example static site — the same one the quickstart deploys.
+          Two files, uploaded with one command.
+        </p>
+        <p class="gallery-meta"><span class="tag">s3</span> <span class="tag live">● live</span></p>
+        <pre><code>deploy up --provider s3 --project sample-site --dir examples/sample-site --no-build</code></pre>
+      </div>
+    </div>
+
+    <h2>Verified by the release pipeline</h2>
+    <p>
+      Beyond the persistent deployments above, every release runs a
+      <strong>real-account smoke test</strong> — the CLI deploys a site to all
+      four hosts, verifies the served content, exercises rollback, and then the
+      workflow cleans the artifacts up:
+    </p>
+    <table>
+      <tr><th>Provider</th><th>What the smoke proves</th><th>Status</th></tr>
+      <tr><td>Netlify</td><td>digest deploy → <code>ready</code> → content check → restore rollback</td><td>✔ passing</td></tr>
+      <tr><td>Vercel</td><td>SHA1 upload → <code>READY</code> wait → content check → two-deploy rollback</td><td>✔ passing</td></tr>
+      <tr><td>Cloudflare Pages</td><td>upload-token direct upload → <code>success</code> → content check</td><td>✔ passing</td></tr>
+      <tr><td>S3</td><td>SigV4 upload → object content check</td><td>✔ passing</td></tr>
+    </table>
+    <p>
+      See the latest run on the
+      <a href="https://github.com/MR-1124/deploy-cli/actions/workflows/release.yml" target="_blank" rel="noopener">release pipeline</a>,
+      or read how it works in the
+      <a href="https://github.com/MR-1124/deploy-cli/blob/main/docs/smoke-test.md" target="_blank" rel="noopener">smoke-test guide</a>.
+    </p>
+
+    <h2>Deploy your own</h2>
+    <p>Any of these entries took one command. Yours will too:</p>
+    <pre><code>cd my-project
+deploy up --provider s3 --project my-project      # or netlify / vercel / cloudflare</code></pre>
+    <p class="page-lede" style="margin-top: 1.6rem">
+      Start with the <a href="quickstart.html">quickstart</a>, or compare the
+      <a href="providers.html">providers</a>.
+    </p>
+  </main>
+
+  <footer>
+    <p>▲ deploy-cli — MIT licensed · <a href="https://github.com/MR-1124/deploy-cli" target="_blank" rel="noopener">source on GitHub</a></p>
+    <p class="tiny">Zero dependencies · Node ≥ 18 · built by the deploy-cli contributors</p>
+  </footer>
+</body>
+</html>
