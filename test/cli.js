@@ -4,6 +4,7 @@ import assert from "node:assert";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import { spawnSync } from "node:child_process";
 
 // Sandbox the config dir and disable color before anything imports the CLI.
 const tmpConfig = fs.mkdtempSync(path.join(os.tmpdir(), "deploy-config-"));
@@ -233,6 +234,41 @@ function mockControlPlane(status) {
   assert.equal(d3.code, 0);
   const parsed = JSON.parse(d3.out);
   assert.ok(parsed.warnings.some((w) => w.includes("defaultProvider")));
+}
+
+// --- npm's Linux bin shim is a symlink: the CLI must still run when argv[1]
+// differs from the module's real path. Regression: the entry guard compared
+// import.meta.url to argv[1] verbatim, so a symlinked invocation silently
+// skipped main() and exited 0 with no output (broke `deploy --version` on
+// Linux installs; Windows .cmd shims pass the real path and never hit it).
+{
+  const repoRoot = path.resolve("..");
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "deploy-symlink-"));
+  const pkgDir = path.join(dir, "node_modules", "@mayan1124", "deploy-cli");
+  fs.mkdirSync(pkgDir, { recursive: true });
+  try {
+    fs.symlinkSync(path.join(repoRoot, "cli.js"), path.join(pkgDir, "cli.js"));
+    fs.symlinkSync(path.join(repoRoot, "lib"), path.join(pkgDir, "lib"));
+    fs.symlinkSync(path.join(repoRoot, "package.json"), path.join(pkgDir, "package.json"));
+  } catch {
+    console.log("  (skipped symlink-run test — symlinks unavailable here)");
+  }
+  if (fs.existsSync(path.join(pkgDir, "cli.js"))) {
+    const binDir = path.join(dir, "node_modules", ".bin");
+    fs.mkdirSync(binDir, { recursive: true });
+    fs.symlinkSync(path.join("..", "@mayan1124", "deploy-cli", "cli.js"), path.join(binDir, "deploy"));
+    const V = JSON.parse(fs.readFileSync(path.join(repoRoot, "package.json"), "utf8")).version;
+    const out = spawnSync(process.execPath, [path.join(binDir, "deploy"), "--version"], { encoding: "utf8" });
+    assert.equal(out.status, 0, `symlinked deploy --version exit (stderr: ${out.stderr})`);
+    assert.equal(out.stdout.trim(), V, `symlinked deploy --version printed ${JSON.stringify(out.stdout)}`);
+    // library import must NOT run main()
+    const lib = spawnSync(process.execPath, ["-e", "import('@mayan1124/deploy-cli')"], {
+      encoding: "utf8",
+      cwd: dir,
+    });
+    assert.equal(lib.status, 0);
+    assert.ok(!lib.stdout.includes(V), "importing the package must not execute the CLI");
+  }
 }
 
 console.log("✔ cli tests passed (arg parsing, commands, error paths, doctor)");

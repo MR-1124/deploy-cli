@@ -17,6 +17,7 @@
 import path from "node:path";
 import process from "node:process";
 import { spawn } from "node:child_process";
+import { realpathSync } from "node:fs";
 import { pathToFileURL } from "node:url";
 import { createRequire } from "node:module";
 
@@ -657,7 +658,10 @@ export async function main(argv = process.argv.slice(2)) {
   }
 }
 
-if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+// Run main() when executed as a script (not when imported as a library). npm's
+// Linux bin shim is a symlink, so argv[1] can differ from import.meta.url —
+// realpath it before comparing or the CLI silently exits without doing anything.
+if (process.argv[1] && import.meta.url === pathToFileURL(realpathSync(process.argv[1])).href) {
   main().then((code) => {
     process.exitCode = code;
   });
