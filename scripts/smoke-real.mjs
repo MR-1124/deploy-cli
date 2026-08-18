@@ -222,7 +222,7 @@ async function smokeS3() {
   });
   // Path-style object URLs serve immediately (no edge propagation) — verify
   // the actual object content, not just the upload.
-  await check(url + "index.html", { attempts: 4, baseMs: 500 });
+  await check(url + "index.html", "smoke-ok", { attempts: 4, baseMs: 500 });
   pass("s3", url);
 }
 
