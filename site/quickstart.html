@@ -132,8 +132,8 @@ echo '{ "outDir": "out" }' > .deployrc.json</code></pre>
         <pre><code>/* /index.html 200</code></pre></li>
       <li><strong>Vercel</strong> — add <code>vercel.json</code>:
         <pre><code>{ "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }] }</code></pre></li>
-      <li><strong>Local control plane</strong> — serves files as-is, so deep links 404 today
-        (SPA fallback is on the roadmap); the root works fine.</li>
+      <li><strong>Local control plane</strong> — SPA fallback built in: deep links serve
+        <code>index.html</code> automatically (assets still 404 correctly).</li>
       <li><strong>Cloudflare Pages / S3</strong> — use each host's equivalent SPA routing config.</li>
     </ul>
     <h3>Preview a branch</h3>

@@ -96,6 +96,37 @@ assert.equal(registry2.projects.demo.aliases.latest, prev.deployId);
 res = await fetch(`${base}/demo/does-not-exist/`);
 assert.equal(res.status, 404);
 
+// --- 2b. SPA fallback: deep links serve index.html, missing assets stay 404 --------
+// route without extension → app shell
+res = await fetch(`${base}/demo/latest/about`);
+assert.equal(res.status, 200);
+assert.equal(await res.text(), "<h1>hi</h1>");
+
+// nested route
+res = await fetch(`${base}/demo/latest/team/contact`);
+assert.equal(res.status, 200);
+assert.equal(await res.text(), "<h1>hi</h1>");
+
+// trailing-slash route
+res = await fetch(`${base}/demo/latest/team/`);
+assert.equal(res.status, 200);
+assert.equal(await res.text(), "<h1>hi</h1>");
+
+// real asset still serves
+res = await fetch(`${base}/demo/latest/nested/app.js`);
+assert.equal(res.status, 200);
+assert.equal(await res.text(), 'console.log("x")');
+
+// missing asset must NOT fall back to HTML
+res = await fetch(`${base}/demo/latest/nested/missing.js`);
+assert.equal(res.status, 404);
+res = await fetch(`${base}/demo/latest/favicon.ico`);
+assert.equal(res.status, 404);
+
+// unknown deploy still 404s on a deep link
+res = await fetch(`${base}/demo/does-not-exist/about`);
+assert.equal(res.status, 404);
+
 // --- 3. idempotency: the same key must not create a duplicate deploy -------------
 const idemKey = "idem-key-1";
 const idemHeaders = {

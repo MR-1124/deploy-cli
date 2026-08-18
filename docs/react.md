@@ -57,8 +57,10 @@ static host — and 404 unless you add a fallback to `index.html`.
 { "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }] }
 ```
 
-**Local control plane** — currently serves files as-is, so deep links 404.
-The root (`/`) works fine. (SPA fallback is on the roadmap.)
+**Local control plane** — SPA fallback is built in: a missing route
+(`/about`, `/team/contact`) serves `index.html` automatically, so deep links
+work with no config. Asset requests (`app.js`, `logo.png`) still return a real
+404, never the HTML shell.
 
 **Cloudflare Pages / S3** — use the equivalent SPA routing config for each host.
 
