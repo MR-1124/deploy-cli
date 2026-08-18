@@ -3,6 +3,37 @@
 The package is publish-ready: `bin`, `files`, `exports`, `engines`, LICENSE,
 and keywords are configured in `package.json`.
 
+## Workflow-driven release (recommended)
+
+The release workflow (`.github/workflows/release.yml`) does the whole job on a
+`v*` tag push — no local npm credentials needed (it uses the `NPM_TOKEN`
+secret):
+
+```bash
+npm version patch   # or minor / major — bumps version, commits, tags
+# ^0.3.2
+git push origin main --tags
+```
+
+That push runs, in order:
+
+1. `npm test` (unit + provider-mock + CLI + UI + cleanup suites)
+2. **Real-account smoke test** against every configured provider
+   (Netlify, Vercel, Cloudflare Pages, S3 — unset providers are skipped)
+3. **Cleanup** of the smoke artifacts the run created (`npm run cleanup
+   -- netlify vercel cloudflare s3 --yes`; non-fatal)
+4. `npm publish --access public` (idempotent — skips if the version exists,
+   but still validates the token)
+5. **Verify** from a clean install: `deploy --version`, `deploy doctor --json`,
+   package API import (registry reads retried for CDN propagation)
+6. **Create the GitHub Release** from `.github/release_template.md`
+   (provider fixes + smoke/cleanup pipeline summary)
+
+The manual steps below are kept for reference / local verification.
+
+---
+
+
 ## Before publishing
 
 1. Update `version` in `package.json` (semver).
