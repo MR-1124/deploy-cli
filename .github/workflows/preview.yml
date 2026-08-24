@@ -29,7 +29,7 @@ jobs:
           node-version: 24
 
       - name: Install dependencies
-        run: npm install
+        run: npm ci
 
       - name: Start local control plane
         run: node cli.js server --port 8787 --storage .deploy-storage --token dev-token &
@@ -37,7 +37,7 @@ jobs:
       - name: Wait for server
         run: |
           for i in $(seq 1 15); do
-            if curl -sf http://localhost:8787/ > /dev/null 2>&1; then
+            if curl -sf --max-time 2 http://localhost:8787/ > /dev/null 2>&1; then
               echo "Server ready"
               exit 0
             fi
