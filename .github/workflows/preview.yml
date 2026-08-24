@@ -53,10 +53,12 @@ jobs:
         id: deploy
         run: |
           cd examples/sample-site
-          DEPLOY_CONFIG_DIR=$RUNNER_TEMP/dc node ../../cli.js preview --json > preview.json
+          DEPLOY_CONFIG_DIR=$RUNNER_TEMP/dc node ../../cli.js preview --json 2>&1 | tee deploy.log | tail -1 > preview.json
           echo "Preview deploy output:"
+          cat deploy.log
+          echo "Parsed JSON:"
           cat preview.json
-          URL=$(node -p "require('./preview.json').url || ''")
+          URL=$(node -p "JSON.parse(require('fs').readFileSync('preview.json','utf8')).url || ''")
           echo "url=$URL" >> "$GITHUB_OUTPUT"
 
       - name: Comment URL on the PR
