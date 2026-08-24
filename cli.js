@@ -462,31 +462,41 @@ async function cmdDiff(flags) {
   const cmd = buildCommand(root, rc);
   const outDir = resolveOutDir(root, rc, Boolean(cmd), flags.dir);
 
-  const rows = await PROVIDERS.local.list({ project, config: cfg });
-  const latest = rows.find((r) => r.production) || rows[0];
-  if (!latest) throw new Error("No deploys yet — run: deploy up");
+  const run = async () => {
+    const rows = await PROVIDERS.local.list({ project, config: cfg });
+    const latest = rows.find((r) => r.production) || rows[0];
+    if (!latest) throw new Error("No deploys yet — run: deploy up");
 
-  const remote = await PROVIDERS.local.files({ project, deployId: latest.id, config: cfg });
-  const localMap = new Map(
-    (await listFiles(outDir)).filter((f) => f.type === "file").map((f) => [f.rel, f.size])
-  );
-  const remoteMap = new Map(remote.files.map((f) => [f.path, f.size]));
+    const remote = await PROVIDERS.local.files({ project, deployId: latest.id, config: cfg });
+    const localMap = new Map(
+      (await listFiles(outDir)).filter((f) => f.type === "file").map((f) => [f.rel, f.size])
+    );
+    const remoteMap = new Map(remote.files.map((f) => [f.path, f.size]));
 
-  const added = [...localMap.keys()].filter((k) => !remoteMap.has(k));
-  const removed = [...remoteMap.keys()].filter((k) => !localMap.has(k));
-  const changed = [...localMap.keys()].filter((k) => remoteMap.has(k) && localMap.get(k) !== remoteMap.get(k));
+    const added = [...localMap.keys()].filter((k) => !remoteMap.has(k));
+    const removed = [...remoteMap.keys()].filter((k) => !localMap.has(k));
+    const changed = [...localMap.keys()].filter((k) => remoteMap.has(k) && localMap.get(k) !== remoteMap.get(k));
 
-  console.log(`Diff vs ${latest.id} (local, size-based):`);
-  const show = (label, items) => {
-    if (!items.length) return;
-    console.log(`  ${label} (${items.length}):`);
-    for (const i of items.slice(0, 25)) console.log(`    ${i}`);
-    if (items.length > 25) console.log(`    … and ${items.length - 25} more`);
+    console.log(`Diff vs ${latest.id} (local, size-based):`);
+    const show = (label, items) => {
+      if (!items.length) return;
+      console.log(`  ${label} (${items.length}):`);
+      for (const i of items.slice(0, 25)) console.log(`    ${i}`);
+      if (items.length > 25) console.log(`    … and ${items.length - 25} more`);
+    };
+    show(green("added"), added);
+    show(yellow("changed"), changed);
+    show(red("removed"), removed);
+    if (!added.length && !changed.length && !removed.length) console.log("  no differences");
+    return { latest: latest.id, added, changed, removed };
   };
-  show(green("added"), added);
-  show(yellow("changed"), changed);
-  show(red("removed"), removed);
-  if (!added.length && !changed.length && !removed.length) console.log("  no differences");
+
+  if (flags.json) {
+    const result = await withJsonStdout(run);
+    console.log(JSON.stringify(result, null, 2));
+    return result;
+  }
+  return run();
 }
 
 async function cmdWatch(flags) {

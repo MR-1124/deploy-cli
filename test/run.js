@@ -9,21 +9,35 @@ import { createServer } from "../lib/server.js";
 // --- 1. tar round-trip ------------------------------------------------------
 const src = fs.mkdtempSync(path.join(os.tmpdir(), "deploy-src-"));
 fs.mkdirSync(path.join(src, "nested/deeper"), { recursive: true });
+const longDir = path.join(src, "assets/chunks/very/deeply/nested/directory/structure/that/exceeds/one/hundred/characters");
+fs.mkdirSync(longDir, { recursive: true });
+fs.writeFileSync(path.join(longDir, "vendor-chunk-with-a-very-long-module-name-and-hash.js"), 'console.log("long-path")');
 fs.writeFileSync(path.join(src, "index.html"), "<h1>hi</h1>");
 fs.writeFileSync(path.join(src, "nested", "app.js"), 'console.log("x")');
+fs.writeFileSync(path.join(src, "nested", "space file.js"), 'console.log("space")');
 fs.writeFileSync(path.join(src, "nested/deeper", "empty.txt"), "");
 fs.writeFileSync(path.join(src, ".deploy-secret.txt"), "should not be tarred");
+fs.writeFileSync(path.join(src, ".env"), "SECRET=123");
+fs.writeFileSync(path.join(src, ".env.local"), "SECRET_LOCAL=456");
 fs.mkdirSync(path.join(src, "node_modules"));
 
 const tar = await tarDirectory(src);
 assert.ok(tar.length % 512 === 0, "tar is block-aligned");
 assert.ok(!tar.toString("utf8").includes("secret"), "exclusions honored");
+assert.ok(!tar.toString("utf8").includes("SECRET="), ".env exclusion honored");
+assert.ok(!tar.toString("utf8").includes("SECRET_LOCAL="), ".env.local exclusion honored");
 
 const dst = fs.mkdtempSync(path.join(os.tmpdir(), "deploy-out-"));
 extractTar(tar, dst);
 assert.equal(fs.readFileSync(path.join(dst, "index.html"), "utf8"), "<h1>hi</h1>");
 assert.equal(fs.readFileSync(path.join(dst, "nested", "app.js"), "utf8"), 'console.log("x")');
+assert.equal(fs.readFileSync(path.join(dst, "nested", "space file.js"), "utf8"), 'console.log("space")');
 assert.equal(fs.readFileSync(path.join(dst, "nested/deeper/empty.txt"), "utf8"), "");
+assert.equal(
+  fs.readFileSync(path.join(dst, "assets/chunks/very/deeply/nested/directory/structure/that/exceeds/one/hundred/characters/vendor-chunk-with-a-very-long-module-name-and-hash.js"), "utf8"),
+  'console.log("long-path")',
+  "long path (>100 chars) extracted correctly via ustar prefix"
+);
 
 // --- 2. server integration ---------------------------------------------------
 const storage = fs.mkdtempSync(path.join(os.tmpdir(), "deploy-store-"));
@@ -51,6 +65,11 @@ assert.ok(up.deployId);
 res = await fetch(`${up.url}nested/app.js`);
 assert.equal(res.status, 200);
 assert.equal(await res.text(), 'console.log("x")');
+
+// serve a file with spaces/percent-encoding
+res = await fetch(`${up.url}nested/space%20file.js`);
+assert.equal(res.status, 200, "percent-encoded URL served correctly");
+assert.equal(await res.text(), 'console.log("space")');
 
 // serve through the immutable deploy id
 res = await fetch(`${base}/demo/${up.deployId}/index.html`);

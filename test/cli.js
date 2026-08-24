@@ -14,6 +14,15 @@ process.env.NO_COLOR = "1";
 const { parseArgs } = await import("../lib/args.js");
 const { main } = await import("../cli.js");
 
+// --- normalizeServer ---------------------------------------------------------
+{
+  const { normalizeServer } = await import("../lib/config.js");
+  assert.equal(normalizeServer("http://localhost:8787/"), "http://localhost:8787");
+  assert.equal(normalizeServer("https://my-domain.app///"), "https://my-domain.app");
+  assert.equal(normalizeServer("localhost:8787"), "http://localhost:8787");
+  assert.equal(normalizeServer(""), "");
+}
+
 // --- parseArgs ---------------------------------------------------------------
 
 {
