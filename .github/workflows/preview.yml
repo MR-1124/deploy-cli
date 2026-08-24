@@ -37,7 +37,7 @@ jobs:
         id: deploy
         run: |
           cd examples/sample-site
-          DEPLOY_CONFIG_DIR=$RUNNER_TEMP/dc node ../../cli.js preview --no-build --json > preview.json
+          DEPLOY_CONFIG_DIR=$RUNNER_TEMP/dc node ../../cli.js preview --json > preview.json
           echo "url=$(node -e "console.log(require('./preview.json').url)")" >> "$GITHUB_OUTPUT"
 
       - name: Comment URL on the PR
