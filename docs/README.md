@@ -9,6 +9,7 @@ Cloudflare Pages, and S3 from a single CLI.
 |---|---|
 | [Install](install.md) | Install from npm, `npm link`, requirements |
 | [Quickstart](quickstart.md) | First deploy in 2 minutes |
+| [Setup & Secrets](../SETUP_GUIDE.md) | Token setup, local logins, and GitHub Actions repository secrets |
 | [Interactive UI](interactive.md) | The menu, prompts, and masked token entry |
 | [Commands](commands.md) | Full reference for every command and flag |
 | Providers | [local](providers-local.md) · [netlify](providers-netlify.md) · [vercel](providers-vercel.md) · [cloudflare](providers-cloudflare.md) · [s3](providers-s3.md) |
