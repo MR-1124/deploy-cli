@@ -24,6 +24,9 @@ jobs:
         with:
           node-version: 20
 
+      - name: Install dependencies
+        run: npm install
+
       - name: Start local control plane
         run: node cli.js server --port 8787 --storage .deploy-storage --token dev-token &
 
