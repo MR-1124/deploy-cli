@@ -498,8 +498,9 @@ function verifySigV4(req, body, { region }) {
   assert.equal(credRegion, region);
   const amzDate = req.headers["x-amz-date"];
   assert.equal(req.headers["x-amz-content-sha256"], sha256hex(body), "payload hash header");
-  const canonicalHeaders = `host:${req.headers.host}\nx-amz-content-sha256:${req.headers["x-amz-content-sha256"]}\nx-amz-date:${amzDate}\n`;
-  const signedHeaders = "host;x-amz-content-sha256;x-amz-date";
+  const contentType = req.headers["content-type"];
+  const canonicalHeaders = `host:${req.headers.host}\n${contentType ? `content-type:${contentType}\n` : ""}x-amz-content-sha256:${req.headers["x-amz-content-sha256"]}\nx-amz-date:${amzDate}\n`;
+  const signedHeaders = contentType ? "content-type;host;x-amz-content-sha256;x-amz-date" : "host;x-amz-content-sha256;x-amz-date";
   const canonicalRequest = `${req.method}\n${req.url.split("?")[0]}\n${(req.url.split("?")[1] || "")}\n${canonicalHeaders}\n${signedHeaders}\n${req.headers["x-amz-content-sha256"]}`;
   const stringToSign = `AWS4-HMAC-SHA256\n${amzDate}\n${scope}\n${sha256hex(canonicalRequest)}`;
   const kDate = hmac("AWS4" + SK, dateStamp);
@@ -515,6 +516,11 @@ const s3Server = await startServer(async (req, res) => {
     verifySigV4(req, body, { region: "us-east-1" });
     const content = body.toString("utf8");
     assert.ok(content === INDEX.toString("utf8") || content === CSS.toString("utf8"), "file content uploaded");
+    if (content === INDEX.toString("utf8")) {
+      assert.equal(req.headers["content-type"], "text/html; charset=utf-8", "HTML content-type verified");
+    } else if (content === CSS.toString("utf8")) {
+      assert.equal(req.headers["content-type"], "text/css; charset=utf-8", "CSS content-type verified");
+    }
     res.writeHead(200, { "Content-Type": "application/xml" });
     return res.end("<PutObjectResult/>");
   }
