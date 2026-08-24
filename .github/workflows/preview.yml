@@ -14,6 +14,10 @@ name: Preview deploy
 on:
   pull_request:
 
+permissions:
+  contents: read
+  pull-requests: write
+
 jobs:
   preview:
     runs-on: ubuntu-latest
@@ -22,13 +26,25 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 24
 
       - name: Install dependencies
         run: npm install
 
       - name: Start local control plane
         run: node cli.js server --port 8787 --storage .deploy-storage --token dev-token &
+
+      - name: Wait for server
+        run: |
+          for i in $(seq 1 15); do
+            if curl -sf http://localhost:8787/ > /dev/null 2>&1; then
+              echo "Server ready"
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "::error::Local control plane failed to start"
+          exit 1
 
       - name: Login
         run: DEPLOY_CONFIG_DIR=$RUNNER_TEMP/dc node cli.js login --server http://localhost:8787
@@ -38,9 +54,13 @@ jobs:
         run: |
           cd examples/sample-site
           DEPLOY_CONFIG_DIR=$RUNNER_TEMP/dc node ../../cli.js preview --json > preview.json
-          echo "url=$(node -e "console.log(require('./preview.json').url)")" >> "$GITHUB_OUTPUT"
+          echo "Preview deploy output:"
+          cat preview.json
+          URL=$(node -p "require('./preview.json').url || ''")
+          echo "url=$URL" >> "$GITHUB_OUTPUT"
 
       - name: Comment URL on the PR
+        if: steps.deploy.outputs.url != ''
         uses: actions/github-script@v7
         with:
           script: |
