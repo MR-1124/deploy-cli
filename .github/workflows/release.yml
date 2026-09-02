@@ -20,26 +20,34 @@ jobs:
           node-version: 24
           registry-url: https://registry.npmjs.org/
 
-      # Guard: never publish a tag whose version doesn't match package.json.
-      - name: Tag matches package.json version
+      # Guard: only run publish flow when tag matches package.json version.
+      # Mismatched tags are treated as a no-op so accidental old tags don't
+      # fail the whole workflow.
+      - name: Check tag matches package.json version
+        id: version_guard
         run: |
           TAG="${GITHUB_REF#refs/tags/}"
           V="v$(node -p "require('./package.json').version")"
           if [ "$TAG" != "$V" ]; then
-            echo "::error::tag ${TAG} does not match package.json version ${V} — refusing to publish"
-            exit 1
+            echo "::warning::tag ${TAG} does not match package.json version ${V} — skipping publish workflow"
+            echo "matched=false" >> "$GITHUB_OUTPUT"
+            exit 0
           fi
+          echo "matched=true" >> "$GITHUB_OUTPUT"
 
       - name: Install dependencies
+        if: steps.version_guard.outputs.matched == 'true'
         run: npm ci
 
       - name: Run the full test suite
+        if: steps.version_guard.outputs.matched == 'true'
         run: npm test
 
       # Real-account smoke test. Providers without credentials are skipped, so
       # this passes cleanly with no secrets configured — and becomes a hard
       # gate once the secrets below are added to the repo.
       - name: Real-account smoke test
+        if: steps.version_guard.outputs.matched == 'true'
         env:
           NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
           SMOKE_SITE: ${{ secrets.SMOKE_SITE }}
@@ -57,6 +65,7 @@ jobs:
       # created on every provider. Non-fatal so a cleanup hiccup can never
       # block a release.
       - name: Clean up smoke artifacts
+        if: steps.version_guard.outputs.matched == 'true'
         continue-on-error: true
         env:
           NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
@@ -73,6 +82,7 @@ jobs:
       # workflow was retried, or the publish was done manually), skip — but
       # still validate the publish token so a broken NPM_TOKEN can't hide.
       - name: Publish to npm
+        if: steps.version_guard.outputs.matched == 'true'
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
@@ -88,6 +98,7 @@ jobs:
       # The package is public, so verification must not depend on the publish
       # token: a bad NODE_AUTH_TOKEN in the runner npmrc would 401 the install.
       - name: Verify the published package
+        if: steps.version_guard.outputs.matched == 'true'
         run: |
           V="$(node -p "require('./package.json').version")"
           echo "verifying @mayan1124/deploy-cli@$V"
@@ -121,6 +132,7 @@ jobs:
       # GitHub Release with the templated notes (runs last, so it only fires
       # once every other step is green). Idempotent for re-runs.
       - name: Create GitHub Release
+        if: steps.version_guard.outputs.matched == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
